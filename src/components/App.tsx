@@ -106,7 +106,7 @@ export default function App() {
           {selectedDoc ? (
             <DocumentEditor
               doc={selectedDoc}
-              ragModelReady={rag.modelStatus === 'ready'}
+              ragModelReady={rag.embedStatus === 'ready'}
               onUpdate={update}
               onEmbed={handleEmbedDoc}
               onBack={() => setSelectedDocId(null)}

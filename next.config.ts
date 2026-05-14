@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
       './node_modules/onnxruntime-node/**',
       './node_modules/@img/**',
       './node_modules/sharp/**',
+      './node_modules/@mlc-ai/**', // WebLLM — browser-only, model weights downloaded at runtime
     ],
   },
 

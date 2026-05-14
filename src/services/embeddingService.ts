@@ -1,6 +1,10 @@
 // Lazy singleton — model downloads once (~23 MB) and is reused across calls
 let _extractorPromise: Promise<(text: string, opts: Record<string, unknown>) => Promise<{ data: Float32Array }>> | null = null
 
+export function isEmbedderLoaded(): boolean {
+  return _extractorPromise !== null
+}
+
 export async function getExtractor(onProgress?: (pct: number) => void) {
   if (!_extractorPromise) {
     _extractorPromise = (async () => {
