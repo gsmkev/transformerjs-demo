@@ -54,8 +54,9 @@ export async function* streamGenerate(
   const stream = await _engine.chat.completions.create({
     messages: [{ role: 'system', content: systemPrompt }, ...history],
     stream: true,
-    temperature: 0.1,
-    max_tokens: 768,
+    temperature: 0,          // deterministic — eliminates creative deviation
+    repetition_penalty: 1.1, // prevents looping / word-list generation
+    max_tokens: 512,
   })
 
   for await (const chunk of stream) {

@@ -19,21 +19,34 @@ export interface ChatMessage {
 
 // ── Context builder ──────────────────────────────────────────────────────────
 
+// How many characters of rawText to include per source document.
+// Large enough to capture most OCR pages; stay within model context budget.
+const CHARS_PER_SOURCE = 1500
+
 function buildSystemPrompt(sources: ScannedDocument[], reranked: boolean): string {
   const ctx = sources
-    .map((d, i) => `[${i + 1}] "${d.title}"\n${d.rawText.slice(0, 500).trimEnd()}`)
-    .join('\n\n---\n\n')
+    .map(
+      (d, i) =>
+        `=== SOURCE [${i + 1}]: "${d.title}" ===\n${d.rawText.slice(0, CHARS_PER_SOURCE).trimEnd()}\n=== END [${i + 1}] ===`,
+    )
+    .join('\n\n')
 
-  return `You are a precise document assistant. Answer questions using ONLY the retrieved excerpts below.
+  // Strict grounding prompt — prevents small models from rephrasing or inventing.
+  // Key insight: explicitly forbid lists/formatting when the document doesn't have them,
+  // and require verbatim quoting for specific values (passwords, codes, phrases, etc.).
+  return `You are a STRICT DOCUMENT READER. Your only job is to find and quote the answer from the SOURCE documents below.
 
-Rules:
-- Cite sources with [1], [2] … notation
-- If the answer is not in the documents, say so clearly
-- Be concise and factual
+HARD RULES — never break these:
+1. Copy the answer VERBATIM (word for word) from the document. Do NOT paraphrase.
+2. If the question asks for a specific word, code, phrase or text to type, quote it EXACTLY as it appears — do not split it into a list.
+3. Do NOT invent, infer, or add anything not present in the documents.
+4. Do NOT reformat content as a numbered list unless the original document already has a list.
+5. Keep your response SHORT: "[Source N] says: <exact quote>".
+6. If the answer is not in any source, respond ONLY with: "Not found in the provided documents."
 
-Retrieved documents (${reranked ? 'cross-encoder reranked' : 'hybrid BM25 + semantic'}):
+${ctx}
 
-${ctx || 'No relevant documents found.'}`
+(Sources retrieved using ${reranked ? 'cross-encoder reranking' : 'hybrid BM25 + semantic search'})`
 }
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
