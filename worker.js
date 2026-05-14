@@ -46,19 +46,15 @@ async function handleLoadModel({ modelId }) {
           self.postMessage({ type: 'LOAD_PROGRESS', payload: { modelId, progress: 0, status: 'initiate', file: info.file } });
         } else if (info.status === 'done') {
           self.postMessage({ type: 'LOAD_PROGRESS', payload: { modelId, progress: 100, status: 'done', file: info.file } });
-        } else if (info.status === 'ready') {
-          fileProgress.clear();
-          pipelineCache.set(modelId, pipe);
-          self.postMessage({ type: 'LOAD_COMPLETE', payload: { modelId } });
         }
+        // 'ready' fires before the await resolves, so `pipe` is still in the
+        // temporal dead zone here. Pipeline is stored after the await below.
       },
     });
 
-    // Fallback: if 'ready' callback didn't fire, store it here
-    if (!pipelineCache.has(modelId)) {
-      pipelineCache.set(modelId, pipe);
-      self.postMessage({ type: 'LOAD_COMPLETE', payload: { modelId } });
-    }
+    fileProgress.clear();
+    pipelineCache.set(modelId, pipe);
+    self.postMessage({ type: 'LOAD_COMPLETE', payload: { modelId } });
   } catch (err) {
     self.postMessage({ type: 'LOAD_ERROR', payload: { modelId, error: err.message } });
   }
