@@ -1,0 +1,17 @@
+{
+  "name": "transformerjs-ocr",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.5.0"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5",
+    "vite-plugin-cross-origin-isolation": "^0.1.6"
+  }
+}

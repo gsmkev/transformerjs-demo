@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OCR Local — Transformers.js</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>OCR Local</h1>
+    <p class="subtitle">100% en tu navegador · sin servidores · powered by Transformers.js</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="view-models">Modelos</button>
+    <button class="tab-btn" data-tab="view-ocr">OCR</button>
+  </nav>
+
+  <main>
+    <!-- ── TAB 1: Model Manager ── -->
+    <section id="view-models" class="view active">
+      <h2>Gestión de modelos</h2>
+      <p class="hint">
+        Los modelos se descargan desde HuggingFace y se guardan en tu navegador.
+        Solo necesitas descargarlos una vez.
+      </p>
+      <div class="model-grid" id="model-grid">
+        <!-- Cards generadas por main.js -->
+      </div>
+    </section>
+
+    <!-- ── TAB 2: OCR Tool ── -->
+    <section id="view-ocr" class="view">
+      <h2>Reconocimiento de texto</h2>
+
+      <div class="ocr-controls">
+        <label for="model-select">Modelo activo</label>
+        <select id="model-select"></select>
+        <button id="btn-load-selected" class="btn-secondary">Cargar en memoria</button>
+        <span id="load-status" class="load-status"></span>
+      </div>
+
+      <div class="ocr-body">
+        <div class="upload-panel">
+          <div class="dropzone" id="dropzone">
+            <div class="dropzone-inner">
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <p>Arrastra una imagen aquí</p>
+              <p class="small">o haz clic para seleccionar</p>
+            </div>
+            <input type="file" id="file-input" accept="image/*" />
+          </div>
+          <div class="preview-wrap" id="preview-wrap" hidden>
+            <img id="preview-img" alt="Imagen cargada" />
+            <button class="btn-ghost" id="btn-clear-image">Cambiar imagen</button>
+          </div>
+        </div>
+
+        <div class="result-panel">
+          <div class="result-header">
+            <span>Texto extraído</span>
+            <button class="btn-ghost" id="btn-copy" hidden>Copiar</button>
+          </div>
+          <textarea id="ocr-result" readonly placeholder="El texto aparecerá aquí después del OCR…"></textarea>
+          <div class="ocr-actions">
+            <button class="btn-primary" id="btn-run-ocr" disabled>Ejecutar OCR</button>
+            <span id="ocr-status" class="ocr-status"></span>
+          </div>
+          <p class="hint small">
+            Tip: TrOCR funciona mejor con imágenes de texto en una sola línea o palabra.
+            Para documentos completos, recorta la región de interés primero.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
