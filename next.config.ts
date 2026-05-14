@@ -1,14 +1,24 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // Prevent Next.js from bundling the Node.js ONNX runtime on the server;
-  // @huggingface/transformers is used only in 'use client' code via dynamic import.
-  serverExternalPackages: ['@huggingface/transformers'],
+  // Exclude heavy native binaries from Next.js file-tracing.
+  // @huggingface/transformers is loaded only via dynamic import in 'use client' code
+  // (browser-only). The ONNX Node.js runtime and sharp native libraries must never
+  // ship inside the serverless function — they are 350+ MB of native binaries that
+  // the browser doesn't use.
+  outputFileTracingExcludes: {
+    '*': [
+      './node_modules/onnxruntime-node/**',
+      './node_modules/@img/**',
+      './node_modules/sharp/**',
+    ],
+  },
 
   webpack(config) {
+    // Alias out Node.js-only packages so the client bundle doesn't try to import them.
     config.resolve.alias = {
       ...config.resolve.alias,
-      'onnxruntime-node$': false, // browser doesn't have this — omit to avoid bundle errors
+      'onnxruntime-node$': false,
       'sharp$': false,
     }
     return config
