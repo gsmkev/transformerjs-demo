@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import withSerwist from '@serwist/next'
 
 const nextConfig: NextConfig = {
   // Exclude heavy native binaries from Next.js file-tracing.
@@ -38,4 +39,12 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+export default withSerwist({
+  swSrc: 'src/app/sw.ts',
+  swDest: 'public/sw.js',
+  // Disable in dev — SW caching interferes with hot reload
+  disable: process.env.NODE_ENV === 'development',
+  // Allow precaching JS chunks up to 10 MB (the ONNX WASM at 23 MB is excluded
+  // intentionally — Transformers.js manages its own Cache Storage for that file)
+  maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+})(nextConfig)
