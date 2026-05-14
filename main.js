@@ -38,6 +38,14 @@ const ENGINES = [
     langs: 'eng',
     langPath: BEST_LANG_PATH,
   },
+  {
+    id: 'spa-best',
+    label: 'Español — Alta Precisión',
+    size: '~15 MB',
+    desc: 'Tessdata best en español. Para documentos escaneados, texto manuscrito o imágenes de baja calidad.',
+    langs: 'spa',
+    langPath: BEST_LANG_PATH,
+  },
 ];
 
 const STORAGE_KEY = 'ocr_selected_engine';
