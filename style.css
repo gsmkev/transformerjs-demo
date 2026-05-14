@@ -167,12 +167,12 @@ main {
   letter-spacing: .05em;
 }
 
-.badge-checking { background: var(--surface2); color: var(--text-muted); }
-.badge-cached   { background: rgba(52,211,153,.15); color: var(--green); }
-.badge-missing  { background: rgba(248,113,113,.1); color: var(--text-muted); }
-.badge-loading  { background: rgba(96,165,250,.15); color: var(--blue); }
+.badge-missing  { background: var(--surface2); color: var(--text-muted); }
+.badge-loading  { background: rgba(96,165,250,.15); color: var(--blue); animation: badge-pulse 1.2s ease-in-out infinite; }
 .badge-error    { background: rgba(248,113,113,.15); color: var(--red); }
 .badge-loaded   { background: rgba(52,211,153,.2); color: var(--green); }
+
+@keyframes badge-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 
 /* Progress bar */
 .progress-wrap { display: none; flex-direction: column; gap: .3rem; }

@@ -1,50 +1,50 @@
-const MODELS = [
+import { createWorker, OEM } from 'tesseract.js';
+
+// Fast tessdata (~8 MB/lang): LSTM engine, balanced speed/accuracy.
+// Best tessdata (~15 MB/lang): highest accuracy, slower load.
+const FAST_LANG_PATH = 'https://tessdata.projectnaptha.com/4.0.0_fast';
+const BEST_LANG_PATH = 'https://tessdata.projectnaptha.com/4.0.0_best';
+
+const ENGINES = [
   {
-    id: 'Xenova/trocr-small-printed',
-    label: 'TrOCR Small — Impreso',
-    size: '~40 MB',
-    desc: 'Rápido. Ideal para texto impreso limpio, capturas de pantalla y documentos digitales.',
+    id: 'eng-fast',
+    label: 'Inglés — Rápido',
+    size: '~8 MB',
+    desc: 'LSTM rápido. Detección + reconocimiento full-page. Ideal para documentos, capturas y texto impreso.',
+    langs: 'eng',
+    langPath: FAST_LANG_PATH,
   },
   {
-    id: 'Xenova/trocr-small-handwritten',
-    label: 'TrOCR Small — Manuscrito',
-    size: '~40 MB',
-    desc: 'Rápido. Optimizado para texto manuscrito y notas a mano.',
+    id: 'spa-fast',
+    label: 'Español — Rápido',
+    size: '~8 MB',
+    desc: 'LSTM rápido en español. Documentos, formularios, capturas de pantalla y texto general.',
+    langs: 'spa',
+    langPath: FAST_LANG_PATH,
   },
   {
-    id: 'Xenova/trocr-base-printed',
-    label: 'TrOCR Base — Impreso',
-    size: '~350 MB',
-    desc: 'Alta precisión para texto impreso denso. Más lento en primera carga.',
+    id: 'eng+spa',
+    label: 'Inglés + Español',
+    size: '~16 MB',
+    desc: 'Bilingüe. Para documentos con mezcla de inglés y español o cuando el idioma es incierto.',
+    langs: 'eng+spa',
+    langPath: FAST_LANG_PATH,
   },
   {
-    id: 'Xenova/trocr-base-handwritten',
-    label: 'TrOCR Base — Manuscrito',
-    size: '~350 MB',
-    desc: 'Máxima calidad para texto manuscrito. Requiere más memoria.',
+    id: 'eng-best',
+    label: 'Inglés — Alta Precisión',
+    size: '~15 MB',
+    desc: 'Tessdata best. Máxima precisión para texto de baja calidad, fuentes inusuales o resolución baja.',
+    langs: 'eng',
+    langPath: BEST_LANG_PATH,
   },
 ];
 
-const STORAGE_KEY = 'ocr_selected_model';
+const STORAGE_KEY = 'ocr_selected_engine';
+const engineCache = new Map(); // id → Tesseract.Worker
 
-// ── Worker ──────────────────────────────────────────────────────────────────
-const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
-
-// Tracks which models are loaded in the worker's in-memory pipeline cache
-const loadedModels = new Set();
-
-worker.addEventListener('message', ({ data }) => {
-  const { type, payload } = data;
-  switch (type) {
-    case 'CACHE_STATUS':  onCacheStatus(payload);  break;
-    case 'LOAD_PROGRESS': onLoadProgress(payload); break;
-    case 'LOAD_COMPLETE': onLoadComplete(payload); break;
-    case 'LOAD_ERROR':    onLoadError(payload);    break;
-    case 'OCR_PROGRESS':  onOcrProgress(payload);  break;
-    case 'OCR_RESULT':    onOcrResult(payload);    break;
-    case 'OCR_ERROR':     onOcrError(payload);     break;
-  }
-});
+let currentFile = null;
+let currentImageDataUrl = null;
 
 // ── Tab routing ──────────────────────────────────────────────────────────────
 document.querySelectorAll('[data-tab]').forEach(btn => {
@@ -55,179 +55,173 @@ document.querySelectorAll('[data-tab]').forEach(btn => {
   });
 });
 
-// ── Model Manager ────────────────────────────────────────────────────────────
-const modelGrid = document.getElementById('model-grid');
+// ── Engine Manager ───────────────────────────────────────────────────────────
+const engineGrid = document.getElementById('engine-grid');
 
-function buildModelCards() {
-  modelGrid.innerHTML = '';
-  MODELS.forEach(model => {
+function buildEngineCards() {
+  engineGrid.innerHTML = '';
+  ENGINES.forEach(eng => {
     const card = document.createElement('div');
     card.className = 'model-card';
-    card.dataset.modelId = model.id;
+    card.dataset.engineId = eng.id;
     card.innerHTML = `
       <div class="model-card-header">
-        <span class="model-name">${model.label}</span>
-        <span class="model-size">${model.size}</span>
+        <span class="model-name">${eng.label}</span>
+        <span class="model-size">${eng.size}</span>
       </div>
-      <p class="model-desc">${model.desc}</p>
-      <span class="badge badge-checking" data-badge>Verificando…</span>
+      <p class="model-desc">${eng.desc}</p>
+      <span class="badge badge-missing" data-badge>No inicializado</span>
       <div class="progress-wrap" data-progress>
         <span class="progress-label" data-progress-label>Descargando…</span>
         <progress max="100" value="0" data-progress-bar></progress>
       </div>
       <p class="error-msg" data-error-msg hidden></p>
       <div class="card-actions">
-        <button class="btn-primary" data-btn-download disabled>Descargar</button>
+        <button class="btn-primary" data-btn-init>Inicializar</button>
         <button class="btn-secondary" data-btn-select>Seleccionar</button>
       </div>
     `;
 
-    card.querySelector('[data-btn-download]').addEventListener('click', () => {
-      worker.postMessage({ type: 'LOAD_MODEL', payload: { modelId: model.id } });
-      setCardState(model.id, 'loading', 0);
-    });
+    card.querySelector('[data-btn-init]').addEventListener('click', () => initEngine(eng));
+    card.querySelector('[data-btn-select]').addEventListener('click', () => setSelectedEngine(eng.id));
 
-    card.querySelector('[data-btn-select]').addEventListener('click', () => {
-      setSelectedModel(model.id);
-    });
-
-    modelGrid.appendChild(card);
-    worker.postMessage({ type: 'CHECK_CACHE', payload: { modelId: model.id } });
+    engineGrid.appendChild(card);
   });
 }
 
-function getCard(modelId) {
-  return modelGrid.querySelector(`[data-model-id="${modelId}"]`);
+function getCard(engineId) {
+  return engineGrid.querySelector(`[data-engine-id="${engineId}"]`);
 }
 
-function setCardState(modelId, state, progress = 0, errorMsg = '') {
-  const card = getCard(modelId);
+function setCardState(engineId, state, errorMsg = '') {
+  const card = getCard(engineId);
   if (!card) return;
   const badge    = card.querySelector('[data-badge]');
   const progWrap = card.querySelector('[data-progress]');
   const progBar  = card.querySelector('[data-progress-bar]');
-  const progLbl  = card.querySelector('[data-progress-label]');
-  const btnDl    = card.querySelector('[data-btn-download]');
   const errEl    = card.querySelector('[data-error-msg]');
+  const btnInit  = card.querySelector('[data-btn-init]');
 
   badge.className = 'badge';
   progWrap.classList.remove('visible');
   errEl.hidden = true;
   errEl.textContent = '';
+  btnInit.classList.remove('spinning');
 
   switch (state) {
-    case 'checking':
-      badge.className += ' badge-checking'; badge.textContent = 'Verificando…';
-      btnDl.disabled = true;
-      break;
-    case 'cached':
-      badge.className += ' badge-cached'; badge.textContent = 'Cacheado';
-      btnDl.disabled = false; btnDl.textContent = 'Recargar';
-      break;
-    case 'missing':
-      badge.className += ' badge-missing'; badge.textContent = 'No descargado';
-      btnDl.disabled = false; btnDl.textContent = 'Descargar';
-      break;
     case 'loading':
-      badge.className += ' badge-loading'; badge.textContent = 'Descargando…';
+      badge.className += ' badge-loading';
+      badge.textContent = 'Cargando…';
       progWrap.classList.add('visible');
-      progBar.value = progress;
-      progLbl.textContent = `${progress}%`;
-      btnDl.disabled = true;
+      progBar.value = 0;
+      btnInit.disabled = true;
+      btnInit.classList.add('spinning');
       break;
     case 'loaded':
-      badge.className += ' badge-loaded'; badge.textContent = 'Cargado ✓';
-      btnDl.disabled = false; btnDl.textContent = 'Recargar';
-      progWrap.classList.remove('visible');
+      badge.className += ' badge-loaded';
+      badge.textContent = 'Listo ✓';
+      btnInit.disabled = false;
+      btnInit.textContent = 'Reinicializar';
+      break;
+    case 'missing':
+      badge.className += ' badge-missing';
+      badge.textContent = 'No inicializado';
+      btnInit.disabled = false;
+      btnInit.textContent = 'Inicializar';
       break;
     case 'error':
-      badge.className += ' badge-error'; badge.textContent = 'Error';
-      btnDl.disabled = false; btnDl.textContent = 'Reintentar';
+      badge.className += ' badge-error';
+      badge.textContent = 'Error';
+      btnInit.disabled = false;
+      btnInit.textContent = 'Reintentar';
       if (errorMsg) { errEl.textContent = errorMsg; errEl.hidden = false; }
       break;
   }
 }
 
-function onCacheStatus({ modelId, cached }) {
-  setCardState(modelId, cached ? 'cached' : 'missing');
+function setCardProgress(engineId, pct, status) {
+  const card = getCard(engineId);
+  if (!card) return;
+  card.querySelector('[data-progress-bar]').value = pct;
+  const label = card.querySelector('[data-progress-label]');
+  label.textContent = status ? `${status} · ${pct}%` : `${pct}%`;
 }
 
-function onLoadProgress({ modelId, progress, status }) {
-  if (status === 'progress' || status === 'initiate') {
-    setCardState(modelId, 'loading', progress);
+async function initEngine(eng) {
+  // Terminate old worker if re-initializing
+  if (engineCache.has(eng.id)) {
+    try { await engineCache.get(eng.id).terminate(); } catch { /* ignore */ }
+    engineCache.delete(eng.id);
+  }
+
+  setCardState(eng.id, 'loading');
+
+  try {
+    const worker = await createWorker(eng.langs, OEM.LSTM_ONLY, {
+      langPath: eng.langPath,
+      logger: (m) => {
+        if (typeof m.progress === 'number') {
+          setCardProgress(eng.id, Math.round(m.progress * 100), m.status);
+        }
+      },
+    });
+    engineCache.set(eng.id, worker);
+    setCardState(eng.id, 'loaded');
+    refreshOcrControls();
+  } catch (err) {
+    setCardState(eng.id, 'error', err.message);
   }
 }
 
-function onLoadComplete({ modelId }) {
-  loadedModels.add(modelId);
-  setCardState(modelId, 'loaded');
-  refreshOcrControls();
-}
-
-function onLoadError({ modelId, error }) {
-  setCardState(modelId, 'error', 0, error);
-  console.error(`Error cargando ${modelId}:`, error);
-}
-
 // ── OCR View ─────────────────────────────────────────────────────────────────
-const modelSelect    = document.getElementById('model-select');
-const btnLoadSel     = document.getElementById('btn-load-selected');
-const loadStatus     = document.getElementById('load-status');
-const dropzone       = document.getElementById('dropzone');
-const fileInput      = document.getElementById('file-input');
-const previewWrap    = document.getElementById('preview-wrap');
-const previewImg     = document.getElementById('preview-img');
-const btnClearImage  = document.getElementById('btn-clear-image');
-const ocrResult      = document.getElementById('ocr-result');
-const btnRunOcr      = document.getElementById('btn-run-ocr');
-const ocrStatus      = document.getElementById('ocr-status');
-const btnCopy        = document.getElementById('btn-copy');
+const engineSelect  = document.getElementById('engine-select');
+const btnInitSel    = document.getElementById('btn-init-selected');
+const loadStatus    = document.getElementById('load-status');
+const dropzone      = document.getElementById('dropzone');
+const fileInput     = document.getElementById('file-input');
+const previewWrap   = document.getElementById('preview-wrap');
+const previewImg    = document.getElementById('preview-img');
+const btnClearImage = document.getElementById('btn-clear-image');
+const ocrResult     = document.getElementById('ocr-result');
+const btnRunOcr     = document.getElementById('btn-run-ocr');
+const ocrStatus     = document.getElementById('ocr-status');
+const btnCopy       = document.getElementById('btn-copy');
 
-let currentImageDataUrl = null;
-
-function buildModelSelect() {
-  modelSelect.innerHTML = '';
-  MODELS.forEach(m => {
+function buildEngineSelect() {
+  engineSelect.innerHTML = '';
+  ENGINES.forEach(eng => {
     const opt = document.createElement('option');
-    opt.value = m.id;
-    opt.textContent = `${m.label} (${m.size})`;
-    modelSelect.appendChild(opt);
+    opt.value = eng.id;
+    opt.textContent = `${eng.label} (${eng.size})`;
+    engineSelect.appendChild(opt);
   });
-  modelSelect.value = getSelectedModel();
+  engineSelect.value = getSelectedEngine();
 }
 
-function getSelectedModel() {
+function getSelectedEngine() {
   const stored = localStorage.getItem(STORAGE_KEY);
-  return stored && MODELS.some(m => m.id === stored) ? stored : MODELS[0].id;
+  return stored && ENGINES.some(e => e.id === stored) ? stored : ENGINES[0].id;
 }
 
-function setSelectedModel(modelId) {
-  localStorage.setItem(STORAGE_KEY, modelId);
-  modelSelect.value = modelId;
+function setSelectedEngine(id) {
+  localStorage.setItem(STORAGE_KEY, id);
+  engineSelect.value = id;
   refreshOcrControls();
 }
 
 function refreshOcrControls() {
-  const modelId = modelSelect.value;
-  const isLoaded = loadedModels.has(modelId);
-  btnRunOcr.disabled = !(isLoaded && currentImageDataUrl);
-  loadStatus.textContent = isLoaded ? 'Listo en memoria ✓' : 'No cargado en memoria';
-  loadStatus.style.color = isLoaded ? 'var(--green)' : 'var(--text-muted)';
+  const id = engineSelect.value;
+  const ready = engineCache.has(id);
+  btnRunOcr.disabled = !(ready && currentFile);
+  loadStatus.textContent = ready ? 'Listo en memoria ✓' : 'No inicializado';
+  loadStatus.style.color = ready ? 'var(--green)' : 'var(--text-muted)';
 }
 
-modelSelect.addEventListener('change', () => {
-  setSelectedModel(modelSelect.value);
-});
+engineSelect.addEventListener('change', () => setSelectedEngine(engineSelect.value));
 
-btnLoadSel.addEventListener('click', () => {
-  const modelId = modelSelect.value;
-  if (loadedModels.has(modelId)) {
-    loadStatus.textContent = 'Ya está en memoria ✓';
-    return;
-  }
-  loadStatus.textContent = 'Cargando…';
-  worker.postMessage({ type: 'LOAD_MODEL', payload: { modelId } });
-  setCardState(modelId, 'loading', 0);
+btnInitSel.addEventListener('click', () => {
+  const eng = ENGINES.find(e => e.id === engineSelect.value);
+  if (eng) initEngine(eng);
 });
 
 // Drag-and-drop
@@ -245,6 +239,7 @@ fileInput.addEventListener('change', () => {
 });
 
 function loadImage(file) {
+  currentFile = file;
   const reader = new FileReader();
   reader.onload = e => {
     currentImageDataUrl = e.target.result;
@@ -259,6 +254,7 @@ function loadImage(file) {
 }
 
 btnClearImage.addEventListener('click', () => {
+  currentFile = null;
   currentImageDataUrl = null;
   previewImg.src = '';
   previewWrap.hidden = true;
@@ -266,38 +262,41 @@ btnClearImage.addEventListener('click', () => {
   fileInput.value = '';
   ocrResult.value = '';
   btnCopy.hidden = true;
+  ocrStatus.textContent = '';
+  ocrStatus.style.color = '';
   refreshOcrControls();
 });
 
 // Run OCR
-btnRunOcr.addEventListener('click', () => {
-  const modelId = modelSelect.value;
-  if (!loadedModels.has(modelId) || !currentImageDataUrl) return;
+btnRunOcr.addEventListener('click', async () => {
+  const eng = ENGINES.find(e => e.id === engineSelect.value);
+  const worker = engineCache.get(eng?.id);
+  if (!worker || !currentFile) return;
+
   btnRunOcr.disabled = true;
   btnRunOcr.classList.add('spinning');
-  ocrStatus.textContent = 'Ejecutando inferencia…';
+  ocrStatus.textContent = 'Ejecutando OCR…';
+  ocrStatus.style.color = '';
   ocrResult.value = '';
-  worker.postMessage({ type: 'RUN_OCR', payload: { modelId, imageDataUrl: currentImageDataUrl } });
+  btnCopy.hidden = true;
+
+  try {
+    const { data } = await worker.recognize(currentFile);
+    ocrResult.value = data.text?.trim() || '(Sin texto detectado)';
+    const conf = data.confidence != null
+      ? ` · Confianza: ${Math.round(data.confidence)}%`
+      : '';
+    ocrStatus.textContent = `Completado${conf}`;
+    btnCopy.hidden = false;
+  } catch (err) {
+    ocrStatus.textContent = `Error: ${err.message}`;
+    ocrStatus.style.color = 'var(--red)';
+  } finally {
+    btnRunOcr.disabled = false;
+    btnRunOcr.classList.remove('spinning');
+    refreshOcrControls();
+  }
 });
-
-function onOcrProgress() {
-  ocrStatus.textContent = 'Procesando imagen…';
-}
-
-function onOcrResult({ text }) {
-  ocrResult.value = text || '(Sin texto detectado)';
-  ocrStatus.textContent = 'Completado';
-  btnCopy.hidden = false;
-  btnRunOcr.disabled = false;
-  btnRunOcr.classList.remove('spinning');
-}
-
-function onOcrError({ error }) {
-  ocrStatus.textContent = `Error: ${error}`;
-  ocrStatus.style.color = 'var(--red)';
-  btnRunOcr.disabled = false;
-  btnRunOcr.classList.remove('spinning');
-}
 
 btnCopy.addEventListener('click', async () => {
   try {
@@ -312,6 +311,6 @@ btnCopy.addEventListener('click', async () => {
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-buildModelCards();
-buildModelSelect();
+buildEngineCards();
+buildEngineSelect();
 refreshOcrControls();
