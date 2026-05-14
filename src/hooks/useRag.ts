@@ -9,6 +9,7 @@ import { BM25Index, reciprocalRankFusion } from '@/services/bm25'
 import { LLM_MODELS } from '@/config/llmModels'
 
 export type ModelStatus = 'idle' | 'loading' | 'ready' | 'error'
+export type ResponseLength = 'concise' | 'normal' | 'detailed'
 
 export interface ChatMessage {
   id: string
@@ -17,24 +18,50 @@ export interface ChatMessage {
   sources?: ScannedDocument[]
 }
 
+// ── Response-length presets ───────────────────────────────────────────────────
+
+interface ResponsePreset {
+  maxTokens: number
+  charsPerSource: number
+  topK: number
+  hint: string
+}
+
+// Base presets; charsPerSource for 'detailed' is scaled up by getPreset() when
+// the selected model has a large context window (> 65 K tokens).
+const RESPONSE_PRESETS: Record<ResponseLength, ResponsePreset> = {
+  concise:  { maxTokens: 256,  charsPerSource: 800,  topK: 3, hint: 'Be brief — one or two sentences maximum.' },
+  normal:   { maxTokens: 512,  charsPerSource: 1500, topK: 5, hint: '' },
+  detailed: { maxTokens: 1500, charsPerSource: 3500, topK: 5, hint: 'Be thorough — as many sentences as the question requires.' },
+}
+
+function getPreset(length: ResponseLength, contextWindow: number): ResponsePreset {
+  const base = RESPONSE_PRESETS[length]
+  // For large-context models (128 K), double the source budget in detailed mode.
+  if (length === 'detailed' && contextWindow > 65536) {
+    return { ...base, charsPerSource: base.charsPerSource * 2 }
+  }
+  return base
+}
+
 // ── Context builder ──────────────────────────────────────────────────────────
 
-// How many characters of rawText to include per source document.
-// Large enough to capture most OCR pages; stay within model context budget.
-const CHARS_PER_SOURCE = 1500
-
-function buildSystemPrompt(sources: ScannedDocument[], reranked: boolean): string {
+function buildSystemPrompt(
+  sources: ScannedDocument[],
+  reranked: boolean,
+  preset: ResponsePreset,
+): string {
   const ctx = sources
     .map(
       (d, i) =>
-        `=== SOURCE [${i + 1}]: "${d.title}" ===\n${d.rawText.slice(0, CHARS_PER_SOURCE).trimEnd()}\n=== END [${i + 1}] ===`,
+        `=== SOURCE [${i + 1}]: "${d.title}" ===\n${d.rawText.slice(0, preset.charsPerSource).trimEnd()}\n=== END [${i + 1}] ===`,
     )
     .join('\n\n')
 
-  // Strict grounding while allowing natural explanatory language.
-  // Key balance: verbatim quotes for specific values (codes, phrases, passwords),
-  // but paraphrase is OK for explanatory questions — as long as no first-person
-  // perspective and no content outside the documents.
+  const lengthRule = preset.hint
+    ? `6. ${preset.hint}`
+    : '6. Be as thorough as the answer requires — a single sentence for simple facts, multiple sentences for complex explanations.'
+
   return `You are a helpful document assistant. Answer questions using ONLY the content of the SOURCE documents below.
 
 RULES — apply all of them together:
@@ -44,7 +71,7 @@ RULES — apply all of them together:
 4. Always speak in THIRD PERSON — e.g. "The document says…", "According to [1]…", "This appears when…".
    NEVER say "I" or "yo" as if you ARE the document.
 5. Cite every claim with [N] (the source number).
-6. Write naturally and helpfully — one or two clear sentences is usually ideal.
+${lengthRule}
 7. If the answer is not in any source, say ONLY: "This information is not in the provided documents."
 
 ${ctx}
@@ -72,6 +99,9 @@ export function useRag() {
   const [llmError, setLlmError]             = useState<string | null>(null)
   const [selectedLlmId, setSelectedLlmId]   = useState(LLM_MODELS[0].id)
   const [webGpuAvailable, setWebGpuAvailable] = useState<boolean | null>(null)
+
+  // Response settings
+  const [responseLength, setResponseLength] = useState<ResponseLength>('normal')
 
   // Chat
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -147,7 +177,7 @@ export function useRag() {
   }, [selectedLlmId])
 
   // ── Retrieval pipeline ──────────────────────────────────────────────────
-  // Returns up to 5 best documents for a query using:
+  // Returns up to topK best documents for a query using:
   //   1. BM25 keyword search (always)
   //   2. Semantic search via bi-encoder (if embedding model loaded + docs indexed)
   //   3. RRF fusion
@@ -156,6 +186,7 @@ export function useRag() {
   const retrieve = useCallback(async (
     query: string,
     documents: ScannedDocument[],
+    topK: number,
   ): Promise<{ sources: ScannedDocument[]; reranked: boolean }> => {
     if (documents.length === 0) return { sources: [], reranked: false }
 
@@ -192,14 +223,14 @@ export function useRag() {
           const reranked = candidates
             .map((d, i) => ({ d, score: scores[i] }))
             .sort((a, b) => b.score - a.score)
-            .slice(0, 5)
+            .slice(0, topK)
             .map((x) => x.d)
           return { sources: reranked, reranked: true }
         }
       } catch { /* reranker failed — fall through */ }
     }
 
-    return { sources: candidates.slice(0, 5), reranked: false }
+    return { sources: candidates.slice(0, topK), reranked: false }
   }, [])
 
   // ── Embedding helper (called from App.tsx to update doc in IndexedDB) ──
@@ -214,6 +245,9 @@ export function useRag() {
     if (streaming) return
     setQueryError(null)
 
+    const selectedModel = LLM_MODELS.find((m) => m.id === selectedLlmId) ?? LLM_MODELS[0]
+    const preset = getPreset(responseLength, selectedModel.contextWindow)
+
     // Add user message
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: query }
     updateMessages((prev) => [...prev, userMsg])
@@ -222,7 +256,7 @@ export function useRag() {
     let sources: ScannedDocument[] = []
     let reranked = false
     try {
-      const result = await retrieve(query, documents)
+      const result = await retrieve(query, documents, preset.topK)
       sources = result.sources
       reranked = result.reranked
       setLastSources(sources)
@@ -252,13 +286,13 @@ export function useRag() {
 
     let accumulated = ''
     try {
-      const systemPrompt = buildSystemPrompt(sources, reranked)
+      const systemPrompt = buildSystemPrompt(sources, reranked, preset)
       // Build history from ref to avoid stale closure
       const history = messagesRef.current
         .filter((m) => m.id !== assistantId)
         .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
 
-      for await (const chunk of streamGenerate(systemPrompt, history)) {
+      for await (const chunk of streamGenerate(systemPrompt, history, preset.maxTokens)) {
         if (abortRef.current) break
         accumulated += chunk
         setMessages((prev) =>
@@ -278,7 +312,7 @@ export function useRag() {
     } finally {
       setStreaming(false)
     }
-  }, [streaming, retrieve, llmStatus, updateMessages])
+  }, [streaming, retrieve, llmStatus, updateMessages, responseLength, selectedLlmId])
 
   const stopStreaming = useCallback(() => { abortRef.current = true }, [])
 
@@ -295,6 +329,7 @@ export function useRag() {
     llmStatus, llmProgress, llmProgressText, llmError,
     selectedLlmId, setSelectedLlmId: handleSelectLlm,
     webGpuAvailable, loadLlm,
+    responseLength, setResponseLength,
     messages, streaming, queryError, lastSources,
     embedDoc, chat, stopStreaming, clearChat,
   } as const

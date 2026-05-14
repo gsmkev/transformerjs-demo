@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, FormEvent } from 'react'
 import type { ScannedDocument } from '@/types/document'
-import type { useRag } from '@/hooks/useRag'
+import type { useRag, ResponseLength } from '@/hooks/useRag'
 import { LLM_MODELS } from '@/config/llmModels'
 import Button from '@/components/ui/Button'
 import ProgressBar from '@/components/ui/ProgressBar'
@@ -57,6 +57,50 @@ function ModelRow({
           {status === 'error' ? 'Retry' : 'Load'}
         </Button>
       )}
+    </div>
+  )
+}
+
+// ── Response-length toggle ────────────────────────────────────────────────
+
+const RESPONSE_LENGTH_OPTIONS: { value: ResponseLength; label: string; desc: string }[] = [
+  { value: 'concise',  label: 'Concise',  desc: '1-2 sentences · fast' },
+  { value: 'normal',   label: 'Normal',   desc: 'Balanced · default' },
+  { value: 'detailed', label: 'Detailed', desc: 'Full explanation · more context' },
+]
+
+function ResponseLengthPicker({
+  value, onChange,
+}: {
+  value: ResponseLength
+  onChange: (v: ResponseLength) => void
+}) {
+  return (
+    <div className="card space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-ink">Response length</p>
+        <p className="text-xs text-dim">affects context window &amp; token budget</p>
+      </div>
+      <div className="flex gap-1.5">
+        {RESPONSE_LENGTH_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            title={opt.desc}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors border ${
+              value === opt.value
+                ? 'border-accent bg-accent/10 text-accent'
+                : 'border-rim text-dim hover:border-accent/40 hover:text-ink'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-dim/70">
+        {RESPONSE_LENGTH_OPTIONS.find((o) => o.value === value)?.desc}
+      </p>
     </div>
   )
 }
@@ -154,6 +198,12 @@ export default function RagView({ documents, rag, onEmbedDoc: _onEmbedDoc, onEmb
             <p className="text-xs text-dim truncate">{rag.llmProgressText}</p>
           )}
         </ModelRow>
+
+        {/* Response length */}
+        <ResponseLengthPicker
+          value={rag.responseLength}
+          onChange={rag.setResponseLength}
+        />
       </section>
 
       {/* ── Document index ── */}

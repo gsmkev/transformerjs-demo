@@ -48,6 +48,7 @@ export async function loadLlmModel(
 export async function* streamGenerate(
   systemPrompt: string,
   history: LlmChatMsg[],
+  maxTokens = 512,
 ): AsyncGenerator<string> {
   if (!_engine) throw new Error('LLM not loaded — load a language model first.')
 
@@ -56,7 +57,7 @@ export async function* streamGenerate(
     stream: true,
     temperature: 0,          // deterministic — eliminates creative deviation
     repetition_penalty: 1.1, // prevents looping / word-list generation
-    max_tokens: 512,
+    max_tokens: maxTokens,
   })
 
   for await (const chunk of stream) {
