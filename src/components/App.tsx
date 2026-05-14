@@ -14,6 +14,7 @@ import OcrView from '@/components/ocr/OcrView'
 import DocumentList from '@/components/documents/DocumentList'
 import DocumentEditor from '@/components/documents/DocumentEditor'
 import RagView from '@/components/rag/RagView'
+import InstallButton from '@/components/ui/InstallButton'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('engines')
@@ -69,9 +70,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-base text-ink">
-      <header className="border-b border-rim px-4 sm:px-6 py-4">
-        <h1 className="text-lg font-bold text-ink">Local OCR</h1>
-        <p className="text-xs text-dim mt-0.5">100% on-device · no data leaves your browser</p>
+      <header className="border-b border-rim px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-bold text-ink">Local OCR</h1>
+          <p className="text-xs text-dim mt-0.5">100% on-device · no data leaves your browser</p>
+        </div>
+        <InstallButton />
       </header>
 
       <main className="max-w-4xl mx-auto">
