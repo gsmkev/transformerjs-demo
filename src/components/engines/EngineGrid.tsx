@@ -6,10 +6,11 @@ interface Props {
   engineStates: EngineStateMap
   selectedId: string
   onLoad: (id: string) => void
+  onRetry: (id: string) => void
   onSelect: (id: string) => void
 }
 
-export default function EngineGrid({ engineStates, selectedId, onLoad, onSelect }: Props) {
+export default function EngineGrid({ engineStates, selectedId, onLoad, onRetry, onSelect }: Props) {
   return (
     <div className="p-4 sm:p-6 space-y-4">
       <p className="text-xs text-dim">
@@ -23,6 +24,7 @@ export default function EngineGrid({ engineStates, selectedId, onLoad, onSelect 
             state={engineStates[engine.id]}
             isSelected={selectedId === engine.id}
             onLoad={() => onLoad(engine.id)}
+            onRetry={() => onRetry(engine.id)}
             onSelect={() => onSelect(engine.id)}
           />
         ))}

@@ -8,10 +8,11 @@ interface Props {
   state: EngineState
   isSelected: boolean
   onLoad: () => void
+  onRetry: () => void
   onSelect: () => void
 }
 
-export default function EngineCard({ engine, state, isSelected, onLoad, onSelect }: Props) {
+export default function EngineCard({ engine, state, isSelected, onLoad, onRetry, onSelect }: Props) {
   const { status, progress, stepLabel, errorMsg } = state
 
   return (
@@ -31,19 +32,25 @@ export default function EngineCard({ engine, state, isSelected, onLoad, onSelect
       )}
 
       {status === 'error' && (
-        <p className="text-xs text-err break-words">{errorMsg}</p>
+        <p role="alert" className="text-xs text-err break-words">{errorMsg}</p>
       )}
 
       <div className="flex gap-2 mt-auto pt-1">
-        <Button
-          variant="ghost"
-          onClick={onLoad}
-          disabled={status === 'loading' || status === 'ready'}
-          spinning={status === 'loading'}
-          className="flex-1"
-        >
-          {status === 'loading' ? 'Loading' : status === 'ready' ? 'Loaded' : 'Load'}
-        </Button>
+        {status === 'error' ? (
+          <Button variant="ghost" onClick={onRetry} className="flex-1">
+            Retry
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            onClick={onLoad}
+            disabled={status === 'loading' || status === 'ready'}
+            spinning={status === 'loading'}
+            className="flex-1"
+          >
+            {status === 'loading' ? 'Loading' : status === 'ready' ? 'Loaded' : 'Load'}
+          </Button>
+        )}
         <Button
           onClick={onSelect}
           disabled={status !== 'ready'}

@@ -27,7 +27,7 @@ export default function OcrView({
   ocrRunning,
   onRunOcr,
 }: Props) {
-  const { file, dataUrl, isDragOver, loadFile, clearImage, dragHandlers, fileInputRef } = imageLoader
+  const { file, dataUrl, isDragOver, fileTypeError, loadFile, clearImage, dragHandlers, fileInputRef } = imageLoader
   const engineReady = engineStates[selectedId]?.status === 'ready'
 
   return (
@@ -43,6 +43,7 @@ export default function OcrView({
       ) : (
         <Dropzone
           isDragOver={isDragOver}
+          fileTypeError={fileTypeError}
           onFile={loadFile}
           dragHandlers={dragHandlers}
           fileInputRef={fileInputRef}

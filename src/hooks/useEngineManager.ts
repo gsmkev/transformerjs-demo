@@ -1,7 +1,6 @@
 'use client'
 
 import { useRef, useState, useCallback } from 'react'
-import type Tesseract from 'tesseract.js'
 import { ENGINES } from '@/config/engines'
 import { buildWorker } from '@/services/tesseractService'
 import type { EngineState, EngineStateMap, WorkerMap } from '@/types/ocr'
@@ -41,10 +40,23 @@ export function useEngineManager() {
     }
   }, [])
 
+  const retryEngine = useCallback(async (engineId: string) => {
+    workersRef.current.delete(engineId)
+    setEngineStates((prev) => patch(prev, engineId, { status: 'idle', progress: 0, stepLabel: '', errorMsg: '' }))
+    await initEngine(engineId)
+  }, [initEngine])
+
+  const terminateAll = useCallback(async () => {
+    const terminations = Array.from(workersRef.current.values()).map((w) => w.terminate())
+    await Promise.allSettled(terminations)
+    workersRef.current.clear()
+    setEngineStates(initialStates)
+  }, [])
+
   const isWorkerReady = useCallback(
     (engineId: string) => workersRef.current.has(engineId) && engineStates[engineId]?.status === 'ready',
     [engineStates],
   )
 
-  return { engineStates, workersRef, initEngine, isWorkerReady } as const
+  return { engineStates, workersRef, initEngine, retryEngine, terminateAll, isWorkerReady } as const
 }

@@ -4,30 +4,39 @@ import { useState, useCallback } from 'react'
 import type { OcrResult } from '@/types/ocr'
 import Button from '@/components/ui/Button'
 
+const COPY_SUCCESS_MS = 1500
+
 interface Props {
   result: OcrResult | null
   error: string | null
 }
 
 export default function ResultPanel({ result, error }: Props) {
-  const [copied, setCopied] = useState(false)
+  const [copyState, setCopyState] = useState<'idle' | 'ok' | 'fail'>('idle')
 
   const copy = useCallback(async () => {
     if (!result?.text) return
-    await navigator.clipboard.writeText(result.text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    try {
+      await navigator.clipboard.writeText(result.text)
+      setCopyState('ok')
+    } catch {
+      setCopyState('fail')
+    } finally {
+      setTimeout(() => setCopyState('idle'), COPY_SUCCESS_MS)
+    }
   }, [result])
 
   if (error) {
     return (
-      <div className="card bg-err/10 border-err/30">
+      <div role="alert" className="card bg-err/10 border-err/30">
         <p className="text-sm text-err">{error}</p>
       </div>
     )
   }
 
   if (!result) return null
+
+  const copyLabel = copyState === 'ok' ? 'Copied!' : copyState === 'fail' ? 'Failed' : 'Copy'
 
   return (
     <div className="card space-y-3">
@@ -37,8 +46,13 @@ export default function ResultPanel({ result, error }: Props) {
           {result.confidence !== null && (
             <span className="text-xs text-dim">Confidence: {result.confidence.toFixed(1)}%</span>
           )}
-          <Button variant="ghost" onClick={copy} className="py-1 text-xs">
-            {copied ? 'Copied!' : 'Copy'}
+          <Button
+            variant="ghost"
+            onClick={copy}
+            aria-label="Copy OCR result text to clipboard"
+            className="py-1 text-xs"
+          >
+            {copyLabel}
           </Button>
         </div>
       </div>
@@ -46,7 +60,8 @@ export default function ResultPanel({ result, error }: Props) {
         readOnly
         value={result.text}
         rows={8}
-        className="w-full bg-base border border-rim rounded-lg p-3 text-sm text-ink resize-y focus:outline-none focus:ring-2 focus:ring-accent font-mono"
+        aria-label="OCR result text"
+        className="w-full max-h-64 sm:max-h-96 bg-base border border-rim rounded-lg p-3 text-sm text-ink resize-y focus:outline-none focus:ring-2 focus:ring-accent font-mono"
       />
     </div>
   )
