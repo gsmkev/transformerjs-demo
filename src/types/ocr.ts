@@ -27,4 +27,4 @@ export interface OcrResult {
   confidence: number | null
 }
 
-export type Tab = 'engines' | 'ocr'
+export type Tab = 'engines' | 'ocr' | 'documents' | 'rag'

@@ -46,3 +46,30 @@ progress::-moz-progress-bar {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── Tiptap / ProseMirror editor ─────────────────────────────────────────── */
+.tiptap-editor .ProseMirror {
+  @apply min-h-[320px] p-4 sm:p-6 outline-none text-ink text-sm leading-relaxed;
+}
+.tiptap-editor .ProseMirror > * + * { @apply mt-3; }
+.tiptap-editor .ProseMirror p       { @apply leading-relaxed; }
+.tiptap-editor .ProseMirror h1      { @apply text-2xl font-bold text-ink; }
+.tiptap-editor .ProseMirror h2      { @apply text-xl  font-bold text-ink; }
+.tiptap-editor .ProseMirror h3      { @apply text-lg  font-semibold text-ink; }
+.tiptap-editor .ProseMirror ul      { @apply list-disc   list-inside space-y-1; }
+.tiptap-editor .ProseMirror ol      { @apply list-decimal list-inside space-y-1; }
+.tiptap-editor .ProseMirror li      { @apply leading-relaxed; }
+.tiptap-editor .ProseMirror strong  { @apply font-bold; }
+.tiptap-editor .ProseMirror em      { @apply italic; }
+.tiptap-editor .ProseMirror s       { @apply line-through; }
+.tiptap-editor .ProseMirror blockquote {
+  @apply border-l-4 border-accent/40 pl-4 text-dim italic;
+}
+.tiptap-editor .ProseMirror code {
+  @apply bg-surface2 text-info rounded px-1.5 py-0.5 font-mono text-xs;
+}
+.tiptap-editor .ProseMirror pre {
+  @apply bg-surface2 rounded-lg p-4 font-mono text-xs overflow-x-auto;
+}
+.tiptap-editor .ProseMirror pre code { @apply bg-transparent p-0; }
+.tiptap-editor .ProseMirror hr      { @apply border-rim my-4; }

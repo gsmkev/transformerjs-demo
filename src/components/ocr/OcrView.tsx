@@ -15,6 +15,8 @@ interface Props {
   ocrError: string | null
   ocrRunning: boolean
   onRunOcr: () => void
+  onSave: () => Promise<void>
+  saving: boolean
 }
 
 export default function OcrView({
@@ -26,6 +28,8 @@ export default function OcrView({
   ocrError,
   ocrRunning,
   onRunOcr,
+  onSave,
+  saving,
 }: Props) {
   const { file, dataUrl, isDragOver, fileTypeError, loadFile, clearImage, dragHandlers, fileInputRef } = imageLoader
   const engineReady = engineStates[selectedId]?.status === 'ready'
@@ -66,6 +70,18 @@ export default function OcrView({
       </Button>
 
       <ResultPanel result={ocrResult} error={ocrError} />
+
+      {ocrResult && (
+        <Button
+          variant="ghost"
+          onClick={onSave}
+          disabled={saving}
+          spinning={saving}
+          className="w-full"
+        >
+          {saving ? 'Saving…' : 'Save to Library'}
+        </Button>
+      )}
     </div>
   )
 }
