@@ -9,6 +9,7 @@ export interface ScannedDocument {
   createdAt: number      // Date.now()
   updatedAt: number
   embedding: number[] | null  // 384-dim float32 from all-MiniLM-L6-v2
+  category?: string | null    // keyword-classified document type
 }
 
 export interface RagResult {

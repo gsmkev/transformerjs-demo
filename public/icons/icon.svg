@@ -1,34 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <!-- App background -->
-  <rect width="512" height="512" rx="108" fill="#1a1d2e"/>
-
-  <!-- Document shadow -->
-  <rect x="148" y="94" width="204" height="264" rx="16" fill="#0f1117" opacity="0.5"/>
-
-  <!-- Document body -->
-  <rect x="140" y="86" width="204" height="264" rx="16" fill="#252840"/>
-  <rect x="140" y="86" width="204" height="264" rx="16" stroke="#6366f1" stroke-width="8"/>
-
-  <!-- Folded corner -->
-  <path d="M296 86 L344 134 L296 134 Z" fill="#1a1d2e"/>
-  <path d="M296 86 L344 86 L344 134 Z" fill="#6366f1" opacity="0.5"/>
-
-  <!-- Text lines in document -->
-  <rect x="172" y="170" width="130" height="10" rx="5" fill="#6366f1" opacity="0.85"/>
-  <rect x="172" y="200" width="148" height="10" rx="5" fill="#6366f1" opacity="0.55"/>
-  <rect x="172" y="230" width="110" height="10" rx="5" fill="#6366f1" opacity="0.55"/>
-  <rect x="172" y="260" width="130" height="10" rx="5" fill="#6366f1" opacity="0.35"/>
-
-  <!-- Scan line -->
-  <rect x="140" y="290" width="204" height="4" rx="2" fill="#6366f1" opacity="0.95"/>
-
-  <!-- Scan corner brackets -->
-  <path d="M140 258 L140 294 L172 294" stroke="#6366f1" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M344 258 L344 294 L312 294" stroke="#6366f1" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- Device / install hint (phone outline bottom-right) -->
-  <rect x="296" y="354" width="84" height="108" rx="14" stroke="#6366f1" stroke-width="7" opacity="0.7"/>
-  <rect x="309" y="368" width="58" height="76" rx="6" fill="#6366f1" opacity="0.18"/>
-  <circle cx="338" cy="452" r="6" fill="#6366f1" opacity="0.8"/>
-  <rect x="322" y="358" width="32" height="5" rx="2.5" fill="#6366f1" opacity="0.4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#0d9488"/>
+  <!-- document body -->
+  <rect x="14" y="10" width="28" height="36" rx="2" fill="white" opacity="0.95"/>
+  <!-- folded corner -->
+  <polygon points="42,10 42,20 52,20" fill="#0f766e"/>
+  <!-- bottom accent bar -->
+  <rect x="14" y="52" width="36" height="4" rx="2" fill="white" opacity="0.6"/>
+  <!-- text lines on document -->
+  <line x1="18" y1="24" x2="36" y2="24" stroke="#0d9488" stroke-width="2" stroke-linecap="round"/>
+  <line x1="18" y1="30" x2="36" y2="30" stroke="#0d9488" stroke-width="2" stroke-linecap="round"/>
+  <line x1="18" y1="36" x2="30" y2="36" stroke="#0d9488" stroke-width="2" stroke-linecap="round"/>
 </svg>

@@ -18,13 +18,13 @@ const mono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Local OCR',
-  description: '100% on-device document scanning and AI-powered search — no data leaves your device.',
+  title: 'Papeleo',
+  description: 'Digitaliza y organiza tus documentos — 100% privado, funciona sin internet.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Local OCR',
+    title: 'Papeleo',
   },
   other: { 'mobile-web-app-capable': 'yes' },
 }
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#6366f1',
+  themeColor: '#0d9488',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

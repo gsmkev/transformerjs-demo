@@ -15,9 +15,9 @@
   body {
     @apply text-ink;
     background:
-      radial-gradient(ellipse 75% 55% at 10% -10%, rgba(99,102,241,0.13) 0%, transparent 65%),
-      radial-gradient(ellipse 55% 45% at 92% 105%, rgba(139,92,246,0.09) 0%, transparent 60%),
-      radial-gradient(ellipse 40% 35% at 50% 50%, rgba(56,189,248,0.03) 0%, transparent 70%),
+      radial-gradient(ellipse 75% 55% at 10% -10%, rgba(13,148,136,0.11) 0%, transparent 65%),
+      radial-gradient(ellipse 55% 45% at 92% 105%, rgba(20,184,166,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 35% at 50% 50%, rgba(13,148,136,0.03) 0%, transparent 70%),
       #07080f;
     min-height: 100dvh;
     position: relative;
@@ -198,6 +198,6 @@ progress::-moz-progress-bar {
 
 /* ── Selection ─────────────────────────────────────────────────────────────── */
 ::selection {
-  background: rgba(99, 102, 241, 0.35);
+  background: rgba(13, 148, 136, 0.35);
   color: theme('colors.ink');
 }

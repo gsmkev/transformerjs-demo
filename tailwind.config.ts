@@ -14,11 +14,11 @@ const config: Config = {
 
         // ── Accent ──────────────────────────────────────────────────────────
         accent: {
-          DEFAULT: '#6366f1',        // indigo
-          light:   '#818cf8',
-          dark:    '#4f46e5',
-          glow:    'rgba(99,102,241,0.22)',
-          muted:   'rgba(99,102,241,0.10)',
+          DEFAULT: '#0d9488',        // teal-600
+          light:   '#2dd4bf',        // teal-400
+          dark:    '#0f766e',        // teal-700
+          glow:    'rgba(13,148,136,0.22)',
+          muted:   'rgba(13,148,136,0.10)',
         },
 
         // ── Text ────────────────────────────────────────────────────────────
@@ -44,25 +44,25 @@ const config: Config = {
         'glass-hover':   '0 0 0 1px rgba(255,255,255,0.07) inset, 0 16px 48px rgba(0,0,0,0.55)',
         'glass-lg':      '0 0 0 1px rgba(255,255,255,0.05) inset, 0 24px 64px rgba(0,0,0,0.65)',
         // Accent glow
-        'accent-glow':   '0 0 20px rgba(99,102,241,0.40), 0 0 48px rgba(99,102,241,0.15)',
-        'accent-glow-sm':'0 0 10px rgba(99,102,241,0.35)',
+        'accent-glow':   '0 0 20px rgba(13,148,136,0.40), 0 0 48px rgba(13,148,136,0.15)',
+        'accent-glow-sm':'0 0 10px rgba(13,148,136,0.35)',
         // Semantic glows
         'ok-glow':       '0 0 14px rgba(34,197,94,0.35)',
         'err-glow':      '0 0 14px rgba(244,63,94,0.35)',
         // Button shadows
-        'btn-primary':   '0 1px 2px rgba(0,0,0,0.3), 0 0 16px rgba(99,102,241,0.25)',
-        'btn-primary-hover': '0 1px 4px rgba(0,0,0,0.4), 0 0 24px rgba(99,102,241,0.40)',
+        'btn-primary':   '0 1px 2px rgba(0,0,0,0.3), 0 0 16px rgba(13,148,136,0.25)',
+        'btn-primary-hover': '0 1px 4px rgba(0,0,0,0.4), 0 0 24px rgba(13,148,136,0.40)',
       },
 
       backgroundImage: {
-        'gradient-accent': 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-        'gradient-accent-subtle': 'linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(139,92,246,0.08) 100%)',
+        'gradient-accent': 'linear-gradient(135deg, #0d9488 0%, #2dd4bf 100%)',
+        'gradient-accent-subtle': 'linear-gradient(135deg, rgba(13,148,136,0.15) 0%, rgba(45,212,191,0.08) 100%)',
         'gradient-ok':    'linear-gradient(135deg, #22c55e 0%, #10b981 100%)',
         'gradient-err':   'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
         // Background mesh (used on body)
         'mesh': [
-          'radial-gradient(ellipse 75% 55% at 10% -10%, rgba(99,102,241,0.13) 0%, transparent 65%)',
-          'radial-gradient(ellipse 55% 45% at 92% 105%, rgba(139,92,246,0.09) 0%, transparent 60%)',
+          'radial-gradient(ellipse 75% 55% at 10% -10%, rgba(13,148,136,0.11) 0%, transparent 65%)',
+          'radial-gradient(ellipse 55% 45% at 92% 105%, rgba(20,184,166,0.08) 0%, transparent 60%)',
           'radial-gradient(ellipse 40% 35% at 50% 50%, rgba(56,189,248,0.03) 0%, transparent 70%)',
         ].join(', '),
       },
@@ -98,8 +98,8 @@ const config: Config = {
           to:   { opacity: '1', transform: 'translateY(0)' },
         },
         'glow-pulse': {
-          '0%,100%': { boxShadow: '0 0 8px rgba(99,102,241,0.25)' },
-          '50%':     { boxShadow: '0 0 22px rgba(99,102,241,0.55), 0 0 44px rgba(99,102,241,0.15)' },
+          '0%,100%': { boxShadow: '0 0 8px rgba(13,148,136,0.25)' },
+          '50%':     { boxShadow: '0 0 22px rgba(13,148,136,0.55), 0 0 44px rgba(13,148,136,0.15)' },
         },
         'shimmer': {
           '0%':   { backgroundPosition: '-200% center' },

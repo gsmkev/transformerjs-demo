@@ -46,8 +46,8 @@ export default function InstallButton() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-ink">Add to Home Screen</p>
-                <p className="text-xs text-dim mt-0.5">Install Local OCR as a PWA</p>
+                <p className="text-sm font-semibold text-ink">Agregar a la pantalla de inicio</p>
+                <p className="text-xs text-dim mt-0.5">Instala Papeleo como app</p>
               </div>
             </div>
 

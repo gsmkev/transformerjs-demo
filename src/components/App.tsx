@@ -8,16 +8,18 @@ import { useImageLoader } from '@/hooks/useImageLoader'
 import { useOcr } from '@/hooks/useOcr'
 import { useDocuments } from '@/hooks/useDocuments'
 import { useRag } from '@/hooks/useRag'
+import { classifyDocument } from '@/services/categoryService'
 import TabBar from '@/components/tabs/TabBar'
 import EngineGrid from '@/components/engines/EngineGrid'
 import OcrView from '@/components/ocr/OcrView'
 import DocumentList from '@/components/documents/DocumentList'
 import DocumentEditor from '@/components/documents/DocumentEditor'
 import RagView from '@/components/rag/RagView'
+import DashboardView from '@/components/dashboard/DashboardView'
 import InstallButton from '@/components/ui/InstallButton'
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>('engines')
+  const [tab, setTab] = useState<Tab>('home')
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -32,7 +34,8 @@ export default function App() {
     if (!imageLoader.dataUrl || !ocr.result) return
     setSaving(true)
     try {
-      const firstLine = ocr.result.text.split('\n').find((l) => l.trim()) ?? 'Untitled'
+      const firstLine = ocr.result.text.split('\n').find((l) => l.trim()) ?? 'Sin título'
+      const category = classifyDocument(ocr.result.text)
       const doc = await create({
         title: firstLine.slice(0, 80),
         imageDataUrl: imageLoader.dataUrl,
@@ -40,6 +43,7 @@ export default function App() {
         richText: '',
         engineId: selectedId,
         confidence: ocr.result.confidence,
+        category,
       })
       setSelectedDocId(doc.id)
       setTab('documents')
@@ -70,18 +74,18 @@ export default function App() {
       <header className="sticky top-0 z-40 border-b border-white/7 bg-base/80 backdrop-blur-xl">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent to-violet-500 flex items-center justify-center shadow-accent-glow-sm flex-shrink-0" aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                <line x1="3" y1="9" x2="21" y2="9"/>
-                <line x1="3" y1="15" x2="21" y2="15"/>
-                <line x1="9" y1="3" x2="9" y2="21"/>
-                <line x1="15" y1="3" x2="15" y2="21"/>
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent to-accent-light flex items-center justify-center shadow-accent-glow-sm flex-shrink-0" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                <rect x="14" y="8" width="26" height="34" rx="2" fill="white" opacity="0.95"/>
+                <polygon points="40,8 40,17 49,17" fill="rgba(15,118,110,0.8)"/>
+                <line x1="18" y1="21" x2="35" y2="21" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round"/>
+                <line x1="18" y1="27" x2="35" y2="27" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round"/>
+                <line x1="18" y1="33" x2="29" y2="33" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round"/>
               </svg>
             </div>
             <div>
-              <h1 className="text-base font-bold gradient-text leading-none">Local OCR</h1>
-              <p className="text-[10px] text-dim/70 mt-0.5 leading-none">100% on-device · private</p>
+              <h1 className="text-base font-bold gradient-text leading-none">Papeleo</h1>
+              <p className="text-[10px] text-dim/70 mt-0.5 leading-none">Tu vida, sin papeles</p>
             </div>
           </div>
           <InstallButton />
@@ -97,6 +101,9 @@ export default function App() {
 
       {/* Main content */}
       <main className="max-w-4xl mx-auto">
+        <div id="panel-home" role="tabpanel" hidden={tab !== 'home'}>
+          <DashboardView documents={documents} onNavigate={setTab} />
+        </div>
         <div id="panel-engines" role="tabpanel" hidden={tab !== 'engines'}>
           <EngineGrid engineStates={engineStates} selectedId={selectedId} onLoad={initEngine} onRetry={retryEngine} onSelect={setSelectedId} />
         </div>

@@ -1,5 +1,16 @@
 import type { ScannedDocument } from '@/types/document'
 
+const CATEGORY_LABELS: Record<string, string> = {
+  factura: '🧾 Factura',
+  contrato: '📝 Contrato',
+  médico: '🏥 Médico',
+  identidad: '🪪 Identidad',
+  seguro: '🛡️ Seguro',
+  bancario: '🏦 Bancario',
+  hogar: '🏠 Hogar',
+  otro: '📄 Otro',
+}
+
 interface Props { doc: ScannedDocument; onOpen: () => void; onDelete: () => void }
 
 export default function DocumentCard({ doc, onOpen, onDelete }: Props) {
@@ -28,6 +39,11 @@ export default function DocumentCard({ doc, onOpen, onDelete }: Props) {
             <span className="inline-flex items-center gap-1 text-xs text-ok/90">
               <span className="w-1.5 h-1.5 rounded-full bg-ok" aria-hidden="true" />
               Indexed
+            </span>
+          )}
+          {doc.category && (
+            <span className="text-xs bg-accent/10 border border-accent/20 text-accent/80 px-2 py-0.5 rounded-full">
+              {CATEGORY_LABELS[doc.category] ?? doc.category}
             </span>
           )}
         </div>

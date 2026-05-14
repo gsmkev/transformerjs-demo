@@ -2,6 +2,12 @@ import type { ReactElement } from 'react'
 import type { Tab } from '@/types/ocr'
 
 const ICONS: Record<Tab, ReactElement> = {
+  home: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  ),
   engines: (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
@@ -29,17 +35,18 @@ const ICONS: Record<Tab, ReactElement> = {
 }
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'engines',   label: 'Models'  },
-  { id: 'ocr',       label: 'OCR'     },
-  { id: 'documents', label: 'Library' },
-  { id: 'rag',       label: 'RAG'     },
+  { id: 'home',      label: 'Inicio'   },
+  { id: 'engines',   label: 'Modelos'  },
+  { id: 'ocr',       label: 'Escanear' },
+  { id: 'documents', label: 'Archivo'  },
+  { id: 'rag',       label: 'RAG'      },
 ]
 
 interface Props { active: Tab; onChange: (tab: Tab) => void }
 
 export default function TabBar({ active, onChange }: Props) {
   return (
-    <nav role="tablist" aria-label="App sections" className="flex gap-1 px-4 sm:px-6 py-2.5 overflow-x-auto">
+    <nav role="tablist" aria-label="Secciones de la app" className="flex gap-1 px-4 sm:px-6 py-2.5 overflow-x-auto">
       {TABS.map((t) => (
         <button
           key={t.id}

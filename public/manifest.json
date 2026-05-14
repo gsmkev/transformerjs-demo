@@ -1,13 +1,13 @@
 {
-  "name": "Local OCR",
-  "short_name": "Local OCR",
-  "description": "100% on-device document scanning and AI-powered search — no data leaves your device.",
+  "name": "Papeleo",
+  "short_name": "Papeleo",
+  "description": "Digitaliza y organiza tus documentos — 100% privado, funciona sin internet.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#0f1117",
-  "theme_color": "#6366f1",
+  "background_color": "#07080f",
+  "theme_color": "#0d9488",
   "categories": ["productivity", "utilities"],
   "icons": [
     {
@@ -29,7 +29,7 @@
       "sizes": "512x512",
       "type": "image/svg+xml",
       "form_factor": "narrow",
-      "label": "Local OCR — scan documents on-device"
+      "label": "Papeleo — digitaliza y organiza tus documentos"
     }
   ]
 }

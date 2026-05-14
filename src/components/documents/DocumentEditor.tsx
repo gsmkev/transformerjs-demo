@@ -5,6 +5,7 @@ import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import type { ScannedDocument } from '@/types/document'
 import Button from '@/components/ui/Button'
+import { shareDocument, printDocument } from '@/services/exportService'
 
 const AUTOSAVE_MS = 900
 
@@ -136,8 +137,16 @@ export default function DocumentEditor({ doc, ragModelReady, onUpdate, onEmbed, 
             {doc.embedding ? 'Re-index' : 'Index for RAG'}
           </Button>
         )}
+        {typeof navigator !== 'undefined' && !!navigator.share && (
+          <Button variant="ghost" onClick={() => shareDocument(doc)} className="py-1 px-2.5 text-xs flex-shrink-0">
+            Compartir
+          </Button>
+        )}
+        <Button variant="ghost" onClick={() => printDocument(doc)} className="py-1 px-2.5 text-xs flex-shrink-0">
+          Exportar PDF
+        </Button>
         <Button variant="ghost" onClick={handleDelete} className="py-1 px-2.5 text-xs flex-shrink-0 text-err/80 hover:text-err hover:bg-err/10 hover:border-err/20">
-          Delete
+          Eliminar
         </Button>
       </div>
 

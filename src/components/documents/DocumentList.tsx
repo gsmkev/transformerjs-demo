@@ -1,7 +1,21 @@
+'use client'
+
+import { useState } from 'react'
 import type { ScannedDocument } from '@/types/document'
 import DocumentCard from './DocumentCard'
 
 interface Props { documents: ScannedDocument[]; loading: boolean; onOpen: (id: string) => void; onDelete: (id: string) => void }
+
+const CATEGORY_LABELS: Record<string, string> = {
+  factura: '🧾 Factura',
+  contrato: '📝 Contrato',
+  médico: '🏥 Médico',
+  identidad: '🪪 Identidad',
+  seguro: '🛡️ Seguro',
+  bancario: '🏦 Bancario',
+  hogar: '🏠 Hogar',
+  otro: '📄 Otro',
+}
 
 function SkeletonCard() {
   return (
@@ -17,6 +31,8 @@ function SkeletonCard() {
 }
 
 export default function DocumentList({ documents, loading, onOpen, onDelete }: Props) {
+  const [filter, setFilter] = useState<string>('all')
+
   if (loading) {
     return (
       <div className="p-4 sm:p-6 space-y-3 animate-fade-in">
@@ -34,22 +50,59 @@ export default function DocumentList({ documents, loading, onOpen, onDelete }: P
           </svg>
         </div>
         <div>
-          <p className="text-sm font-semibold text-ink">No documents yet</p>
+          <p className="text-sm font-semibold text-ink">No hay documentos</p>
           <p className="text-xs text-dim mt-1.5 max-w-xs leading-relaxed">
-            Run an OCR scan and click <strong className="text-ink font-medium">Save to Library</strong> to get started.
+            Escanea un documento y haz clic en <strong className="text-ink font-medium">Guardar en biblioteca</strong> para empezar.
           </p>
         </div>
       </div>
     )
   }
 
+  const categories = Array.from(new Set(documents.map((d) => d.category).filter(Boolean))) as string[]
+  const filtered = filter === 'all' ? documents : documents.filter((d) => d.category === filter)
+
   return (
     <div className="p-4 sm:p-6 space-y-4 animate-fade-in">
-      <p className="section-label">{documents.length} document{documents.length !== 1 ? 's' : ''}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="section-label">{filtered.length} documento{filtered.length !== 1 ? 's' : ''}</p>
+      </div>
+
+      {categories.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-all border ${
+              filter === 'all'
+                ? 'bg-accent/15 border-accent/30 text-accent'
+                : 'border-white/10 text-dim hover:text-ink hover:bg-white/5'
+            }`}
+          >
+            Todos
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setFilter(cat)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all border ${
+                filter === cat
+                  ? 'bg-accent/15 border-accent/30 text-accent'
+                  : 'border-white/10 text-dim hover:text-ink hover:bg-white/5'
+              }`}
+            >
+              {CATEGORY_LABELS[cat] ?? cat}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="space-y-3">
-        {documents.map((doc) => (
+        {filtered.map((doc) => (
           <DocumentCard key={doc.id} doc={doc} onOpen={() => onOpen(doc.id)} onDelete={() => onDelete(doc.id)} />
         ))}
+        {filtered.length === 0 && (
+          <p className="text-xs text-dim text-center py-6">No hay documentos en esta categoría.</p>
+        )}
       </div>
     </div>
   )
