@@ -14,27 +14,15 @@ function rawToHtml(text: string): string {
   return paragraphs.map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')
 }
 
-// ── Toolbar ─────────────────────────────────────────────────────────────────
-
-function ToolBtn({
-  active,
-  label,
-  onClick,
-  children,
-}: {
-  active: boolean
-  label: string
-  onClick: () => void
-  children: React.ReactNode
-}) {
+function ToolBtn({ active, label, onClick, children }: { active: boolean; label: string; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
       aria-pressed={active}
-      className={`px-2 py-1 rounded text-xs font-mono transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-accent ${
-        active ? 'bg-accent text-white' : 'text-dim hover:bg-rim hover:text-ink'
+      className={`px-2 py-1 rounded-lg text-xs font-mono transition-colors border focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/50 ${
+        active ? 'bg-accent/20 text-accent border-accent/30' : 'text-dim border-transparent hover:bg-white/7 hover:text-ink'
       }`}
     >
       {children}
@@ -45,44 +33,23 @@ function ToolBtn({
 function Toolbar({ editor }: { editor: Editor | null }) {
   if (!editor) return null
   const e = editor
-
   return (
-    <div className="flex flex-wrap gap-1 px-3 py-2 border-b border-rim bg-surface">
-      <ToolBtn active={e.isActive('bold')} label="Bold" onClick={() => e.chain().focus().toggleBold().run()}>
-        <strong>B</strong>
-      </ToolBtn>
-      <ToolBtn active={e.isActive('italic')} label="Italic" onClick={() => e.chain().focus().toggleItalic().run()}>
-        <em>I</em>
-      </ToolBtn>
-      <ToolBtn active={e.isActive('strike')} label="Strikethrough" onClick={() => e.chain().focus().toggleStrike().run()}>
-        S̶
-      </ToolBtn>
-      <span className="w-px bg-rim mx-1" aria-hidden="true" />
-      <ToolBtn active={e.isActive('heading', { level: 1 })} label="Heading 1" onClick={() => e.chain().focus().toggleHeading({ level: 1 }).run()}>
-        H1
-      </ToolBtn>
-      <ToolBtn active={e.isActive('heading', { level: 2 })} label="Heading 2" onClick={() => e.chain().focus().toggleHeading({ level: 2 }).run()}>
-        H2
-      </ToolBtn>
-      <span className="w-px bg-rim mx-1" aria-hidden="true" />
-      <ToolBtn active={e.isActive('bulletList')} label="Bullet list" onClick={() => e.chain().focus().toggleBulletList().run()}>
-        • —
-      </ToolBtn>
-      <ToolBtn active={e.isActive('orderedList')} label="Ordered list" onClick={() => e.chain().focus().toggleOrderedList().run()}>
-        1.
-      </ToolBtn>
-      <span className="w-px bg-rim mx-1" aria-hidden="true" />
-      <ToolBtn active={e.isActive('code')} label="Inline code" onClick={() => e.chain().focus().toggleCode().run()}>
-        {'</>'}
-      </ToolBtn>
-      <ToolBtn active={e.isActive('blockquote')} label="Blockquote" onClick={() => e.chain().focus().toggleBlockquote().run()}>
-        ❝
-      </ToolBtn>
+    <div className="flex flex-wrap gap-1 px-3 py-2 border-b border-white/7 bg-surface/60 backdrop-blur-sm">
+      <ToolBtn active={e.isActive('bold')}   label="Bold"          onClick={() => e.chain().focus().toggleBold().run()}><strong>B</strong></ToolBtn>
+      <ToolBtn active={e.isActive('italic')} label="Italic"        onClick={() => e.chain().focus().toggleItalic().run()}><em>I</em></ToolBtn>
+      <ToolBtn active={e.isActive('strike')} label="Strikethrough" onClick={() => e.chain().focus().toggleStrike().run()}>S̶</ToolBtn>
+      <span className="w-px bg-white/8 mx-0.5 self-stretch" aria-hidden="true" />
+      <ToolBtn active={e.isActive('heading', { level: 1 })} label="H1" onClick={() => e.chain().focus().toggleHeading({ level: 1 }).run()}>H1</ToolBtn>
+      <ToolBtn active={e.isActive('heading', { level: 2 })} label="H2" onClick={() => e.chain().focus().toggleHeading({ level: 2 }).run()}>H2</ToolBtn>
+      <span className="w-px bg-white/8 mx-0.5 self-stretch" aria-hidden="true" />
+      <ToolBtn active={e.isActive('bulletList')}  label="Bullet list"  onClick={() => e.chain().focus().toggleBulletList().run()}>• —</ToolBtn>
+      <ToolBtn active={e.isActive('orderedList')} label="Ordered list" onClick={() => e.chain().focus().toggleOrderedList().run()}>1.</ToolBtn>
+      <span className="w-px bg-white/8 mx-0.5 self-stretch" aria-hidden="true" />
+      <ToolBtn active={e.isActive('code')}       label="Code"       onClick={() => e.chain().focus().toggleCode().run()}>{'</>'}</ToolBtn>
+      <ToolBtn active={e.isActive('blockquote')} label="Blockquote" onClick={() => e.chain().focus().toggleBlockquote().run()}>❝</ToolBtn>
     </div>
   )
 }
-
-// ── Editor ───────────────────────────────────────────────────────────────────
 
 interface Props {
   doc: ScannedDocument
@@ -136,79 +103,76 @@ export default function DocumentEditor({ doc, ragModelReady, onUpdate, onEmbed, 
 
   const handleEmbed = async () => {
     setEmbedding(true)
-    try {
-      await onEmbed(doc)
-    } finally {
-      setEmbedding(false)
-    }
+    try { await onEmbed(doc) } finally { setEmbedding(false) }
   }
 
-  const statusColor: Record<SaveStatus, string> = {
-    saved: 'text-ok', saving: 'text-info', unsaved: 'text-dim',
+  const saveStatusDisplay: Record<SaveStatus, { label: string; cls: string }> = {
+    saved:   { label: 'Saved',     cls: 'text-ok/80'   },
+    saving:  { label: 'Saving…',   cls: 'text-info/80' },
+    unsaved: { label: '● Unsaved', cls: 'text-dim'     },
   }
+  const { label: saveLabel, cls: saveCls } = saveStatusDisplay[saveStatus]
 
   return (
-    <div className="flex flex-col min-h-0">
+    <div className="flex flex-col min-h-0 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-rim flex-wrap">
-        <Button variant="ghost" onClick={onBack} className="py-1 px-2 text-xs flex-shrink-0">
-          ← Library
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/7 bg-surface/40 backdrop-blur-sm flex-wrap">
+        <Button variant="ghost" onClick={onBack} className="py-1 px-2.5 text-xs flex-shrink-0 gap-1">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          Library
         </Button>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onBlur={handleTitleBlur}
           aria-label="Document title"
-          className="flex-1 min-w-0 bg-transparent text-ink font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded px-1 py-0.5"
+          className="flex-1 min-w-0 bg-transparent text-ink text-sm font-semibold focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 rounded px-1 py-0.5"
         />
-        <span className={`text-xs flex-shrink-0 ${statusColor[saveStatus]}`}>
-          {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving…' : '● Unsaved'}
-        </span>
+        <span className={`text-xs flex-shrink-0 font-mono ${saveCls}`}>{saveLabel}</span>
         {ragModelReady && (
-          <Button
-            variant="ghost"
-            onClick={handleEmbed}
-            spinning={embedding}
-            disabled={embedding}
-            className="py-1 px-2 text-xs flex-shrink-0"
-          >
+          <Button variant="ghost" onClick={handleEmbed} spinning={embedding} disabled={embedding} className="py-1 px-2.5 text-xs flex-shrink-0">
             {doc.embedding ? 'Re-index' : 'Index for RAG'}
           </Button>
         )}
-        <Button
-          variant="ghost"
-          onClick={handleDelete}
-          className="py-1 px-2 text-xs flex-shrink-0 text-err hover:bg-err/10"
-        >
+        <Button variant="ghost" onClick={handleDelete} className="py-1 px-2.5 text-xs flex-shrink-0 text-err/80 hover:text-err hover:bg-err/10 hover:border-err/20">
           Delete
         </Button>
       </div>
 
-      {/* Toggle: Edit / Original */}
-      <div className="flex border-b border-rim text-xs">
-        <button
-          onClick={() => setShowOriginal(false)}
-          className={`px-4 py-2 font-semibold transition-colors ${!showOriginal ? 'text-accent border-b-2 border-accent -mb-px' : 'text-dim hover:text-ink'}`}
-        >
-          Edit
-        </button>
-        <button
-          onClick={() => setShowOriginal(true)}
-          className={`px-4 py-2 font-semibold transition-colors ${showOriginal ? 'text-accent border-b-2 border-accent -mb-px' : 'text-dim hover:text-ink'}`}
-        >
-          Original
-        </button>
+      {/* Edit / Original toggle */}
+      <div className="flex gap-1 px-4 py-2.5 border-b border-white/5 bg-surface/30">
+        {(['edit', 'original'] as const).map((mode) => {
+          const isActive = mode === 'edit' ? !showOriginal : showOriginal
+          return (
+            <button
+              key={mode}
+              onClick={() => setShowOriginal(mode === 'original')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                isActive
+                  ? 'bg-accent/15 border border-accent/30 text-accent'
+                  : 'text-dim hover:text-ink hover:bg-white/5 border border-transparent'
+              }`}
+            >
+              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            </button>
+          )
+        })}
       </div>
 
+      {/* Content */}
       {showOriginal ? (
-        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto animate-fade-in">
           {doc.imageDataUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={doc.imageDataUrl} alt="Original scan" className="max-h-72 object-contain rounded-lg border border-rim bg-base mx-auto block" />
+            <div className="card p-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={doc.imageDataUrl} alt="Original scan" className="max-h-72 object-contain rounded-xl bg-surface mx-auto block w-full" />
+            </div>
           )}
-          <pre className="text-xs text-dim whitespace-pre-wrap font-mono bg-surface2 rounded-lg p-4 overflow-x-auto">
-            {doc.rawText}
-          </pre>
+          <div className="card">
+            <pre className="text-xs text-dim whitespace-pre-wrap font-mono leading-relaxed overflow-x-auto">{doc.rawText}</pre>
+          </div>
         </div>
       ) : (
         <>

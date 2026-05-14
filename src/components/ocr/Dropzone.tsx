@@ -16,10 +16,7 @@ export default function Dropzone({ isDragOver, fileTypeError, onFile, dragHandle
   const open = () => fileInputRef.current?.click()
 
   const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      open()
-    }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() }
   }
 
   return (
@@ -31,15 +28,25 @@ export default function Dropzone({ isDragOver, fileTypeError, onFile, dragHandle
         role="button"
         tabIndex={0}
         aria-label="Upload image for OCR — click or drag and drop"
-        className={`cursor-pointer rounded-xl border-2 border-dashed transition-colors p-8 flex flex-col items-center justify-center gap-2 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-          isDragOver ? 'border-accent bg-accent/10' : 'border-rim hover:border-accent/60'
+        className={`cursor-pointer rounded-2xl border-2 border-dashed transition-all p-10 flex flex-col items-center justify-center gap-3 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${
+          isDragOver
+            ? 'border-accent bg-accent/8 shadow-accent-glow'
+            : 'border-white/12 hover:border-accent/50 hover:bg-white/3'
         }`}
       >
-        <span className="text-3xl" aria-hidden="true">🖼️</span>
-        <p className="text-sm text-dim">
-          Drop an image here, or <span className="text-accent">browse</span>
-        </p>
-        <p className="text-xs text-dim/60">PNG, JPG, WEBP, BMP…</p>
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+          isDragOver ? 'bg-accent/20 text-accent' : 'bg-white/5 text-dim'
+        }`}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </div>
+        <div>
+          <p className="text-sm text-ink/80">Drop an image here, or <span className="text-accent font-medium">browse</span></p>
+          <p className="text-xs text-dim/60 mt-1">PNG, JPG, WEBP, BMP, TIFF</p>
+        </div>
         <input
           ref={fileInputRef as Ref<HTMLInputElement>}
           type="file"
@@ -47,15 +54,16 @@ export default function Dropzone({ isDragOver, fileTypeError, onFile, dragHandle
           className="hidden"
           aria-hidden="true"
           tabIndex={-1}
-          onChange={(e) => {
-            const f = e.target.files?.[0]
-            if (f) onFile(f)
-          }}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f) }}
         />
       </div>
-
       {fileTypeError && (
-        <p role="alert" className="text-xs text-err">{fileTypeError}</p>
+        <div className="flex items-center gap-1.5 text-xs text-err">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <p role="alert">{fileTypeError}</p>
+        </div>
       )}
     </div>
   )
