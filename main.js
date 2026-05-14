@@ -75,6 +75,7 @@ function buildModelCards() {
         <span class="progress-label" data-progress-label>Descargando…</span>
         <progress max="100" value="0" data-progress-bar></progress>
       </div>
+      <p class="error-msg" data-error-msg hidden></p>
       <div class="card-actions">
         <button class="btn-primary" data-btn-download disabled>Descargar</button>
         <button class="btn-secondary" data-btn-select>Seleccionar</button>
@@ -99,7 +100,7 @@ function getCard(modelId) {
   return modelGrid.querySelector(`[data-model-id="${modelId}"]`);
 }
 
-function setCardState(modelId, state, progress = 0) {
+function setCardState(modelId, state, progress = 0, errorMsg = '') {
   const card = getCard(modelId);
   if (!card) return;
   const badge    = card.querySelector('[data-badge]');
@@ -107,9 +108,12 @@ function setCardState(modelId, state, progress = 0) {
   const progBar  = card.querySelector('[data-progress-bar]');
   const progLbl  = card.querySelector('[data-progress-label]');
   const btnDl    = card.querySelector('[data-btn-download]');
+  const errEl    = card.querySelector('[data-error-msg]');
 
   badge.className = 'badge';
   progWrap.classList.remove('visible');
+  errEl.hidden = true;
+  errEl.textContent = '';
 
   switch (state) {
     case 'checking':
@@ -139,6 +143,7 @@ function setCardState(modelId, state, progress = 0) {
     case 'error':
       badge.className += ' badge-error'; badge.textContent = 'Error';
       btnDl.disabled = false; btnDl.textContent = 'Reintentar';
+      if (errorMsg) { errEl.textContent = errorMsg; errEl.hidden = false; }
       break;
   }
 }
@@ -160,7 +165,7 @@ function onLoadComplete({ modelId }) {
 }
 
 function onLoadError({ modelId, error }) {
-  setCardState(modelId, 'error');
+  setCardState(modelId, 'error', 0, error);
   console.error(`Error cargando ${modelId}:`, error);
 }
 

@@ -1,8 +1,17 @@
 import { defineConfig } from 'vite';
-import crossOriginIsolation from 'vite-plugin-cross-origin-isolation';
+
+// COEP: credentialless (not require-corp) is required so the browser can fetch
+// cross-origin model files from HuggingFace CDN, which doesn't send a
+// Cross-Origin-Resource-Policy header. credentialless still enables
+// SharedArrayBuffer (multi-threaded ONNX) via COOP: same-origin.
+const isolationHeaders = {
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Embedder-Policy': 'credentialless',
+};
 
 export default defineConfig({
-  plugins: [crossOriginIsolation()],
+  server:  { headers: isolationHeaders },
+  preview: { headers: isolationHeaders },
 
   worker: {
     format: 'es',

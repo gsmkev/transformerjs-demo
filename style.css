@@ -193,6 +193,12 @@ progress::-webkit-progress-bar { background: var(--surface2); border-radius: 999
 progress::-webkit-progress-value { background: var(--accent); border-radius: 999px; transition: width .2s; }
 progress::-moz-progress-bar { background: var(--accent); border-radius: 999px; }
 
+.error-msg {
+  font-size: .73rem;
+  color: var(--red);
+  word-break: break-word;
+}
+
 /* Card actions */
 .card-actions { display: flex; gap: .5rem; margin-top: auto; }
 
