@@ -7,6 +7,10 @@ export async function buildWorker(
 ): Promise<Tesseract.Worker> {
   const worker = await Tesseract.createWorker(engine.langs, 1, {
     langPath: engine.langPath,
+    // Force non-SIMD WASM: the SIMD build calls DotProductSSE (SSE intrinsics)
+    // which crashes in environments where WASM SIMD feature-detects as available
+    // but the specific vector instructions aren't supported at runtime.
+    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-lstm.wasm.js',
     logger: (m: Tesseract.LoggerMessage) => {
       if (m.status === 'loading tesseract core') {
         onProgress(Math.round((m.progress ?? 0) * 10), 'Loading core…')
