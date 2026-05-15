@@ -5,32 +5,33 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ── Backgrounds ─────────────────────────────────────────────────────
-        void:    '#04050b',          // deepest bg (behind everything)
-        base:    '#07080f',          // app background
-        surface: '#0d1018',          // solid surface (inputs, editors, code blocks)
-        surface2:'#141926',          // secondary solid surface
-        rim:     '#1d2235',          // subtle solid border
+        void:     'var(--color-void)',
+        base:     'var(--color-base)',
+        surface:  'var(--color-surface)',
+        surface2: 'var(--color-surface2)',
+        rim:      'var(--color-rim)',
 
-        // ── Accent ──────────────────────────────────────────────────────────
         accent: {
-          DEFAULT: '#0d9488',        // teal-600
-          light:   '#2dd4bf',        // teal-400
-          dark:    '#0f766e',        // teal-700
-          glow:    'rgba(13,148,136,0.22)',
-          muted:   'rgba(13,148,136,0.10)',
+          DEFAULT: 'var(--color-accent)',
+          light:   'var(--color-accent-light)',
+          dark:    'var(--color-accent-dark)',
+          glow:    'var(--color-accent-glow)',
+          muted:   'var(--color-accent-muted)',
         },
 
-        // ── Text ────────────────────────────────────────────────────────────
-        ink:   '#eaecf5',
-        dim:   '#7880a0',
-        muted: '#434c66',
+        ink:   'var(--color-ink)',
+        dim:   'var(--color-dim)',
+        muted: 'var(--color-muted)',
 
-        // ── Semantic ─────────────────────────────────────────────────────────
-        ok:   '#22c55e',
-        err:  '#f43f5e',
-        warn: '#f59e0b',
-        info: '#38bdf8',
+        ok:   'var(--color-ok)',
+        err:  'var(--color-err)',
+        warn: 'var(--color-warn)',
+        info: 'var(--color-info)',
+
+        glass: {
+          bg:     'var(--glass-bg)',
+          border: 'var(--glass-border)',
+        },
       },
 
       fontFamily: {
