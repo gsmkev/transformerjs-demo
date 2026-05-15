@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import type { Tab } from '@/types/ocr'
 import { useEngineManager } from '@/hooks/useEngineManager'
 import { useSelectedEngine } from '@/hooks/useSelectedEngine'
@@ -19,12 +19,14 @@ import RagView from '@/components/rag/RagView'
 import DashboardView from '@/components/dashboard/DashboardView'
 import InstallButton from '@/components/ui/InstallButton'
 import { useTheme } from '@/hooks/useTheme'
+import SearchOverlay from '@/components/search/SearchOverlay'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('home')
   const [activeKey, setActiveKey] = useState(0)
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   const { theme, toggle } = useTheme()
   const { engineStates, workersRef, initEngine, retryEngine } = useEngineManager()
@@ -90,6 +92,22 @@ export default function App() {
     await refreshChunks()
   }, [remove, refreshChunks])
 
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [])
+
+  const handleSearchNavigate = useCallback((docId: string) => {
+    setSelectedDocId(docId)
+    handleTabChange('documents')
+  }, [handleTabChange])
+
   const selectedDoc = selectedDocId ? documents.find((d) => d.id === selectedDocId) : null
   const allTags = Array.from(new Set(documents.flatMap((d) => d.tags ?? []))).sort()
 
@@ -113,6 +131,15 @@ export default function App() {
               <p className="text-[10px] text-dim/70 mt-0.5 leading-none">Tu vida, sin papeles</p>
             </div>
           </div>
+          <button
+            onClick={() => setSearchOpen(true)}
+            aria-label="Buscar documentos (Cmd+K)"
+            className="p-2 rounded-lg hover:bg-white/5 transition-colors text-dim hover:text-ink flex-shrink-0"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
           <button
             onClick={toggle}
             aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
@@ -224,6 +251,14 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      {searchOpen && (
+        <SearchOverlay
+          documents={documents}
+          onNavigate={handleSearchNavigate}
+          onClose={() => setSearchOpen(false)}
+        />
+      )}
     </div>
   )
 }
