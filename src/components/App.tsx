@@ -93,7 +93,7 @@ export default function App() {
   return (
     <div className="min-h-screen text-ink">
       {/* Sticky glass header */}
-      <header className="sticky top-0 z-40 border-b border-white/7 bg-base/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-[var(--glass-border)] bg-base/80 backdrop-blur-xl">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent to-accent-light flex items-center justify-center shadow-accent-glow-sm flex-shrink-0" aria-hidden="true">
@@ -115,7 +115,7 @@ export default function App() {
       </header>
 
       {/* Sticky top tab bar — desktop only */}
-      <div className="hidden sm:block sticky top-[57px] z-30 bg-base/80 backdrop-blur-xl border-b border-white/5">
+      <div className="hidden sm:block sticky top-[57px] z-30 bg-base/80 backdrop-blur-xl border-b border-[var(--glass-border)]">
         <div className="max-w-4xl mx-auto">
           <TabBar active={tab} onChange={handleTabChange} />
         </div>

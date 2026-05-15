@@ -172,19 +172,20 @@ html.light {
 
   /* ── Tiptap / ProseMirror ── */
   .tiptap-editor .ProseMirror {
-    @apply min-h-[280px] px-5 py-5 sm:px-7 outline-none text-ink/90 text-sm leading-7;
+    @apply min-h-[280px] px-5 py-5 sm:px-7 outline-none text-sm leading-7;
+    color: color-mix(in srgb, var(--color-ink) 90%, transparent);
   }
   .tiptap-editor .ProseMirror:focus { @apply outline-none; }
   .tiptap-editor .ProseMirror > * + * { @apply mt-3; }
   .tiptap-editor .ProseMirror h1 { @apply text-2xl font-bold tracking-tight mt-7 mb-2; }
   .tiptap-editor .ProseMirror h2 { @apply text-xl font-semibold mt-5 mb-2; }
   .tiptap-editor .ProseMirror h3 { @apply text-lg font-semibold mt-4 mb-1; }
-  .tiptap-editor .ProseMirror p  { @apply text-sm leading-7 text-ink/80; }
+  .tiptap-editor .ProseMirror p  { @apply text-sm leading-7; color: color-mix(in srgb, var(--color-ink) 80%, transparent); }
   .tiptap-editor .ProseMirror ul,
   .tiptap-editor .ProseMirror ol { @apply pl-5 space-y-1; }
   .tiptap-editor .ProseMirror ul { @apply list-disc; }
   .tiptap-editor .ProseMirror ol { @apply list-decimal; }
-  .tiptap-editor .ProseMirror li { @apply text-sm text-ink/80; }
+  .tiptap-editor .ProseMirror li { @apply text-sm; color: color-mix(in srgb, var(--color-ink) 80%, transparent); }
   .tiptap-editor .ProseMirror code {
     @apply rounded-md px-1.5 py-0.5 font-mono text-xs;
     background-color: rgba(255, 255, 255, 0.08);
@@ -196,7 +197,8 @@ html.light {
   }
   .tiptap-editor .ProseMirror pre code { @apply bg-transparent p-0; }
   .tiptap-editor .ProseMirror blockquote {
-    @apply border-l-2 border-accent/40 pl-4 text-dim italic;
+    @apply border-l-2 pl-4 text-dim italic;
+    border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
   }
   .tiptap-editor .ProseMirror hr {
     @apply my-6;
@@ -204,7 +206,7 @@ html.light {
     border: none;
     background: rgba(255,255,255,0.07);
   }
-  .tiptap-editor .ProseMirror a { @apply text-accent underline decoration-accent/30; }
+  .tiptap-editor .ProseMirror a { @apply text-accent underline; text-decoration-color: color-mix(in srgb, var(--color-accent) 30%, transparent); }
   .tiptap-editor .ProseMirror strong { @apply font-semibold text-ink; }
   .tiptap-editor .ProseMirror em { @apply italic; }
   .tiptap-editor .ProseMirror s  { @apply line-through; }
