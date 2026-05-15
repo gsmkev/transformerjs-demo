@@ -22,7 +22,7 @@ function ToolBtn({ active, label, onClick, children }: { active: boolean; label:
       onClick={onClick}
       aria-label={label}
       aria-pressed={active}
-      className={`px-2 py-1 rounded-lg text-xs font-mono transition-colors border focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/50 ${
+      className={`px-2.5 py-1.5 min-w-[36px] rounded-lg text-xs font-mono transition-colors border focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/50 ${
         active ? 'bg-accent/20 text-accent border-accent/30' : 'text-dim border-transparent hover:bg-white/7 hover:text-ink'
       }`}
     >

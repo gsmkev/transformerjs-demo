@@ -21,6 +21,7 @@ import InstallButton from '@/components/ui/InstallButton'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('home')
+  const [activeKey, setActiveKey] = useState(0)
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -30,6 +31,12 @@ export default function App() {
   const ocr = useOcr({ workersRef, selectedId })
   const { documents, chunks, loading: docsLoading, create, update, remove, refreshChunks } = useDocuments()
   const rag = useRag()
+
+  const handleTabChange = useCallback((t: Tab) => {
+    setTab(t)
+    setActiveKey((k) => k + 1)
+    if (t !== 'documents') setSelectedDocId(null)
+  }, [])
 
   const handleSave = useCallback(async () => {
     if (!imageLoader.dataUrl || !ocr.result) return
@@ -47,16 +54,15 @@ export default function App() {
         category,
       })
       setSelectedDocId(doc.id)
-      setTab('documents')
+      handleTabChange('documents')
     } finally {
       setSaving(false)
     }
-  }, [imageLoader.dataUrl, ocr.result, create, selectedId])
+  }, [imageLoader.dataUrl, ocr.result, create, selectedId, handleTabChange])
 
   const handleEmbedDoc = useCallback(
     async (doc: (typeof documents)[number]) => {
       await indexDocument(doc.id, doc.rawText)
-      // Use [1] as a truthy flag — actual embeddings live in the chunks store
       await update(doc.id, { embedding: [1] })
       await refreshChunks()
     },
@@ -101,58 +107,77 @@ export default function App() {
         </div>
       </header>
 
-      {/* Sticky tab bar */}
-      <div className="sticky top-[57px] z-30 bg-base/80 backdrop-blur-xl border-b border-white/5">
+      {/* Sticky top tab bar — desktop only */}
+      <div className="hidden sm:block sticky top-[57px] z-30 bg-base/80 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-4xl mx-auto">
-          <TabBar active={tab} onChange={(t) => { setTab(t); if (t !== 'documents') setSelectedDocId(null) }} />
+          <TabBar active={tab} onChange={handleTabChange} />
         </div>
       </div>
 
+      {/* Fixed bottom tab bar — mobile only */}
+      <TabBar variant="bottom" active={tab} onChange={handleTabChange} />
+
       {/* Main content */}
-      <main className="max-w-4xl mx-auto">
-        <div id="panel-home" role="tabpanel" hidden={tab !== 'home'}>
-          <DashboardView documents={documents} onNavigate={setTab} />
+      <main className="max-w-4xl mx-auto mb-20 sm:mb-0">
+        <div id="panel-home" role="tabpanel" aria-hidden={tab !== 'home'} className={tab !== 'home' ? 'hidden' : ''}>
+          <div key={tab === 'home' ? activeKey : 0} className={tab === 'home' ? 'tab-panel-enter' : ''}>
+            <DashboardView documents={documents} onNavigate={handleTabChange} />
+          </div>
         </div>
-        <div id="panel-engines" role="tabpanel" hidden={tab !== 'engines'}>
-          <ModelsView
-            engineStates={engineStates} selectedId={selectedId} onLoad={initEngine} onRetry={retryEngine} onSelect={setSelectedId}
-            embedStatus={rag.embedStatus} embedProgress={rag.embedProgress} embedError={rag.embedError} loadEmbedModel={rag.loadEmbedModel}
-            rerankerStatus={rag.rerankerStatus} rerankerProgress={rag.rerankerProgress} rerankerError={rag.rerankerError} loadReranker={rag.loadReranker}
-            llmStatus={rag.llmStatus} llmProgress={rag.llmProgress} llmProgressText={rag.llmProgressText} llmError={rag.llmError} loadLlm={rag.loadLlm}
-            selectedLlmId={rag.selectedLlmId} setSelectedLlmId={rag.setSelectedLlmId} webGpuAvailable={rag.webGpuAvailable}
-            responseLength={rag.responseLength} setResponseLength={rag.setResponseLength}
-          />
-        </div>
-        <div id="panel-ocr" role="tabpanel" hidden={tab !== 'ocr'}>
-          <OcrView
-            selectedId={selectedId}
-            engineStates={engineStates}
-            onSelectEngine={setSelectedId}
-            imageLoader={imageLoader}
-            ocrResult={ocr.result}
-            ocrError={ocr.error}
-            ocrRunning={ocr.running}
-            onRunOcr={() => imageLoader.file && ocr.execute(imageLoader.file)}
-            onSave={handleSave}
-            saving={saving}
-          />
-        </div>
-        <div id="panel-documents" role="tabpanel" hidden={tab !== 'documents'}>
-          {selectedDoc ? (
-            <DocumentEditor
-              doc={selectedDoc}
-              ragModelReady={rag.embedStatus === 'ready'}
-              onUpdate={update}
-              onEmbed={handleEmbedDoc}
-              onBack={() => setSelectedDocId(null)}
-              onDelete={async (id) => { await handleRemoveDoc(id); setSelectedDocId(null) }}
+        <div id="panel-engines" role="tabpanel" aria-hidden={tab !== 'engines'} className={tab !== 'engines' ? 'hidden' : ''}>
+          <div key={tab === 'engines' ? activeKey : 0} className={tab === 'engines' ? 'tab-panel-enter' : ''}>
+            <ModelsView
+              engineStates={engineStates} selectedId={selectedId} onLoad={initEngine} onRetry={retryEngine} onSelect={setSelectedId}
+              embedStatus={rag.embedStatus} embedProgress={rag.embedProgress} embedError={rag.embedError} loadEmbedModel={rag.loadEmbedModel}
+              rerankerStatus={rag.rerankerStatus} rerankerProgress={rag.rerankerProgress} rerankerError={rag.rerankerError} loadReranker={rag.loadReranker}
+              llmStatus={rag.llmStatus} llmProgress={rag.llmProgress} llmProgressText={rag.llmProgressText} llmError={rag.llmError} loadLlm={rag.loadLlm}
+              selectedLlmId={rag.selectedLlmId} setSelectedLlmId={rag.setSelectedLlmId} webGpuAvailable={rag.webGpuAvailable}
+              responseLength={rag.responseLength} setResponseLength={rag.setResponseLength}
             />
-          ) : (
-            <DocumentList documents={documents} loading={docsLoading} onOpen={setSelectedDocId} onDelete={handleRemoveDoc} />
-          )}
+          </div>
         </div>
-        <div id="panel-rag" role="tabpanel" hidden={tab !== 'rag'}>
-          <RagView documents={documents} chunks={chunks} rag={rag} onEmbedDoc={handleEmbedDoc} onEmbedAll={handleEmbedAll} onNavigateToModels={() => setTab('engines')} />
+        <div id="panel-ocr" role="tabpanel" aria-hidden={tab !== 'ocr'} className={tab !== 'ocr' ? 'hidden' : ''}>
+          <div key={tab === 'ocr' ? activeKey : 0} className={tab === 'ocr' ? 'tab-panel-enter' : ''}>
+            <OcrView
+              selectedId={selectedId}
+              engineStates={engineStates}
+              onSelectEngine={setSelectedId}
+              imageLoader={imageLoader}
+              ocrResult={ocr.result}
+              ocrError={ocr.error}
+              ocrRunning={ocr.running}
+              onRunOcr={() => imageLoader.file && ocr.execute(imageLoader.file)}
+              onSave={handleSave}
+              saving={saving}
+            />
+          </div>
+        </div>
+        <div id="panel-documents" role="tabpanel" aria-hidden={tab !== 'documents'} className={tab !== 'documents' ? 'hidden' : ''}>
+          <div key={tab === 'documents' ? activeKey : 0} className={tab === 'documents' ? 'tab-panel-enter' : ''}>
+            {selectedDoc ? (
+              <DocumentEditor
+                doc={selectedDoc}
+                ragModelReady={rag.embedStatus === 'ready'}
+                onUpdate={update}
+                onEmbed={handleEmbedDoc}
+                onBack={() => setSelectedDocId(null)}
+                onDelete={async (id) => { await handleRemoveDoc(id); setSelectedDocId(null) }}
+              />
+            ) : (
+              <DocumentList
+                documents={documents}
+                loading={docsLoading}
+                onOpen={setSelectedDocId}
+                onDelete={handleRemoveDoc}
+                onScanClick={() => handleTabChange('ocr')}
+              />
+            )}
+          </div>
+        </div>
+        <div id="panel-rag" role="tabpanel" aria-hidden={tab !== 'rag'} className={tab !== 'rag' ? 'hidden' : ''}>
+          <div key={tab === 'rag' ? activeKey : 0} className={tab === 'rag' ? 'tab-panel-enter' : ''}>
+            <RagView documents={documents} chunks={chunks} rag={rag} onEmbedDoc={handleEmbedDoc} onEmbedAll={handleEmbedAll} onNavigateToModels={() => handleTabChange('engines')} />
+          </div>
         </div>
       </main>
     </div>

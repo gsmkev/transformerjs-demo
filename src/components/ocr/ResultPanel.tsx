@@ -54,7 +54,7 @@ export default function ResultPanel({ result, error }: Props) {
         value={result.text}
         rows={8}
         aria-label="OCR result text"
-        className="w-full max-h-72 sm:max-h-96 bg-void border border-white/7 rounded-xl px-4 py-3 text-sm text-ink/85 font-mono resize-y focus:outline-none focus:ring-1 focus:ring-accent/40 leading-relaxed"
+        className="w-full max-h-60 sm:max-h-80 lg:max-h-none bg-void border border-white/7 rounded-xl px-4 py-3 text-sm text-ink/85 font-mono resize-y focus:outline-none focus:ring-1 focus:ring-accent/40 leading-relaxed"
       />
     </div>
   )

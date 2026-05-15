@@ -3,8 +3,15 @@
 import { useState } from 'react'
 import type { ScannedDocument } from '@/types/document'
 import DocumentCard from './DocumentCard'
+import Button from '@/components/ui/Button'
 
-interface Props { documents: ScannedDocument[]; loading: boolean; onOpen: (id: string) => void; onDelete: (id: string) => void }
+interface Props {
+  documents: ScannedDocument[]
+  loading: boolean
+  onOpen: (id: string) => void
+  onDelete: (id: string) => void
+  onScanClick?: () => void
+}
 
 const CATEGORY_LABELS: Record<string, string> = {
   factura: '🧾 Factura',
@@ -17,20 +24,22 @@ const CATEGORY_LABELS: Record<string, string> = {
   otro: '📄 Otro',
 }
 
+const shimmerCls = 'bg-gradient-to-r from-white/4 via-white/8 to-white/4 bg-[length:200%_100%] animate-shimmer rounded-lg'
+
 function SkeletonCard() {
   return (
     <div className="card flex gap-4 pointer-events-none">
-      <div className="w-14 h-14 rounded-xl bg-white/5 flex-shrink-0 animate-pulse" />
+      <div className={`w-14 h-14 rounded-xl flex-shrink-0 ${shimmerCls}`} />
       <div className="flex-1 space-y-2.5 py-0.5">
-        <div className="h-3.5 bg-white/5 rounded-lg animate-pulse w-3/5" />
-        <div className="h-2.5 bg-white/4 rounded-lg animate-pulse w-4/5" />
-        <div className="h-2.5 bg-white/4 rounded-lg animate-pulse w-2/5" />
+        <div className={`h-3.5 w-3/5 ${shimmerCls}`} />
+        <div className={`h-2.5 w-4/5 ${shimmerCls}`} />
+        <div className={`h-2.5 w-2/5 ${shimmerCls}`} />
       </div>
     </div>
   )
 }
 
-export default function DocumentList({ documents, loading, onOpen, onDelete }: Props) {
+export default function DocumentList({ documents, loading, onOpen, onDelete, onScanClick }: Props) {
   const [filter, setFilter] = useState<string>('all')
 
   if (loading) {
@@ -50,11 +59,16 @@ export default function DocumentList({ documents, loading, onOpen, onDelete }: P
           </svg>
         </div>
         <div>
-          <p className="text-sm font-semibold text-ink">No hay documentos</p>
+          <p className="text-sm font-semibold text-ink">Biblioteca vacía</p>
           <p className="text-xs text-dim mt-1.5 max-w-xs leading-relaxed">
-            Escanea un documento y haz clic en <strong className="text-ink font-medium">Guardar en biblioteca</strong> para empezar.
+            Escanea un documento y guárdalo en la biblioteca para verlo aquí.
           </p>
         </div>
+        {onScanClick && (
+          <Button onClick={onScanClick} className="px-5">
+            Ir a OCR
+          </Button>
+        )}
       </div>
     )
   }

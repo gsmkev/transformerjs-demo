@@ -22,7 +22,7 @@ function StatCard({ label, value, sub }: StatCardProps) {
   return (
     <div className="card flex flex-col gap-1">
       <p className="section-label">{label}</p>
-      <p className="text-2xl font-bold text-ink tabular-nums">{value}</p>
+      <p className="text-xl sm:text-2xl font-bold text-ink tabular-nums">{value}</p>
       {sub && <p className="text-xs text-dim/70">{sub}</p>}
     </div>
   )

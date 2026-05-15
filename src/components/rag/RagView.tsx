@@ -89,7 +89,7 @@ export default function RagView({ documents, chunks, rag, onEmbedDoc: _onEmbedDo
 
       {/* Chat — full width, taller now that sidebar is gone */}
       <div className="card flex flex-col gap-4" style={{ minHeight: '520px' }}>
-        <div className="flex-1 overflow-y-auto space-y-4 max-h-[520px] pr-1">
+        <div className="flex-1 overflow-y-auto scroll-smooth space-y-4 max-h-[520px] pr-1">
           {rag.messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center py-8 gap-3">
               <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/8 flex items-center justify-center">
@@ -100,6 +100,21 @@ export default function RagView({ documents, chunks, rag, onEmbedDoc: _onEmbedDo
               <div>
                 <p className="text-sm text-dim">Pregunta sobre tus documentos escaneados</p>
                 <p className="text-xs text-dim/60 mt-1">La búsqueda BM25 funciona sin ningún modelo cargado</p>
+              </div>
+              <div className="flex flex-wrap gap-2 justify-center mt-1">
+                {[
+                  '¿Qué dice este documento?',
+                  '¿Cuál es el importe total?',
+                  '¿Quién firma el contrato?',
+                ].map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => setInput(q)}
+                    className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/9 text-xs text-dim hover:text-ink hover:bg-white/8 cursor-pointer transition-colors"
+                  >
+                    {q}
+                  </button>
+                ))}
               </div>
             </div>
           ) : (
