@@ -32,9 +32,10 @@ interface Props {
   documents: ScannedDocument[]
   onNavigate: (tab: Tab) => void
   onCameraCapture: () => void
+  onOpenDoc: (id: string) => void
 }
 
-export default function DashboardView({ documents, onNavigate, onCameraCapture }: Props) {
+export default function DashboardView({ documents, onNavigate, onCameraCapture, onOpenDoc }: Props) {
   const total = documents.length
   const indexed = documents.filter((d) => d.embedding !== null).length
   const categoryCounts: Record<string, number> = {}
@@ -146,6 +147,35 @@ export default function DashboardView({ documents, onNavigate, onCameraCapture }
           </div>
         </div>
       )}
+
+      {/* Datos clave */}
+      {(() => {
+        const docsWithData = documents.filter((d) => d.extractedData && Object.keys(d.extractedData).length > 0)
+        if (docsWithData.length === 0) return null
+        return (
+          <div className="card space-y-3">
+            <p className="section-label">Datos clave</p>
+            <div className="space-y-2">
+              {docsWithData.slice(0, 5).map((doc) => {
+                const fields = doc.extractionSchema?.slice(0, 3) ?? []
+                return (
+                  <button
+                    key={doc.id}
+                    type="button"
+                    onClick={() => onOpenDoc(doc.id)}
+                    className="w-full text-left space-y-0.5 hover:bg-white/5 rounded-xl px-2 py-1.5 -mx-2 transition-colors"
+                  >
+                    <p className="text-xs font-medium text-ink truncate">{doc.title}</p>
+                    <p className="text-xs text-dim/70">
+                      {fields.map((f) => `${f.label}: ${doc.extractedData?.[f.key] ?? '—'}`).join(' · ')}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Quick actions */}
       <div className="flex gap-3 flex-wrap">

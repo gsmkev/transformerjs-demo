@@ -189,7 +189,12 @@ export default function App() {
       <main className="max-w-4xl mx-auto mb-20 sm:mb-0">
         <div id="panel-home" role="tabpanel" aria-hidden={tab !== 'home'} className={tab !== 'home' ? 'hidden' : ''}>
           <div key={tab === 'home' ? activeKey : 0} className={tab === 'home' ? 'tab-panel-enter' : ''}>
-            <DashboardView documents={documents} onNavigate={handleTabChange} onCameraCapture={handleCameraCapture} />
+            <DashboardView
+                documents={documents}
+                onNavigate={handleTabChange}
+                onCameraCapture={handleCameraCapture}
+                onOpenDoc={(id) => { setSelectedDocId(id); handleTabChange('documents') }}
+              />
           </div>
         </div>
         <div id="panel-engines" role="tabpanel" aria-hidden={tab !== 'engines'} className={tab !== 'engines' ? 'hidden' : ''}>
