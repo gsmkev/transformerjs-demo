@@ -1,4 +1,4 @@
-import type { ScannedDocument } from '@/types/document'
+import type { ScannedDocument, Collection } from '@/types/document'
 
 function expiryBadge(expiresAt: number | null | undefined): { label: string; cls: string } | null {
   if (!expiresAt) return null
@@ -29,9 +29,10 @@ interface Props {
   selectionMode?: boolean
   isSelected?: boolean
   onToggleSelect?: () => void
+  collection?: Collection | null
 }
 
-export default function DocumentCard({ doc, onOpen, onDelete, selectionMode, isSelected, onToggleSelect }: Props) {
+export default function DocumentCard({ doc, onOpen, onDelete, selectionMode, isSelected, onToggleSelect, collection }: Props) {
   const date = new Date(doc.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 
   return (
@@ -73,6 +74,19 @@ export default function DocumentCard({ doc, onOpen, onDelete, selectionMode, isS
           {doc.category && (
             <span className="text-xs bg-accent/10 border border-accent/20 text-accent/80 px-2 py-0.5 rounded-full">
               {CATEGORY_LABELS[doc.category] ?? doc.category}
+            </span>
+          )}
+          {collection && (
+            <span
+              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border"
+              style={{
+                backgroundColor: `${collection.color}18`,
+                borderColor: `${collection.color}40`,
+                color: collection.color,
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: collection.color }} aria-hidden="true" />
+              {collection.name}
             </span>
           )}
           {(() => {
