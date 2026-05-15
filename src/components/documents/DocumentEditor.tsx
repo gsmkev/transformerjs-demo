@@ -78,6 +78,7 @@ type SaveStatus = 'saved' | 'saving' | 'unsaved'
 export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId, llmReady, onUpdate, onEmbed, onBack, onDelete }: Props) {
   const [title, setTitle] = useState(doc.title)
   const [tags, setTags] = useState<string[]>(doc.tags ?? [])
+  const [expiresAt, setExpiresAt] = useState<number | null>(doc.expiresAt ?? null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [embedding, setEmbedding] = useState(false)
   const [showOriginal, setShowOriginal] = useState(false)
@@ -120,6 +121,7 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
     setLocalData(doc.extractedData ?? {})
     setEditingSchema(false)
     setExtractionError(null)
+    setExpiresAt(doc.expiresAt ?? null)
   }, [doc.id])
 
   const handleTitleBlur = async () => {
@@ -172,6 +174,12 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
     } finally {
       setExtracting(false)
     }
+  }
+
+  const handleExpiryChange = async (dateStr: string) => {
+    const ts = dateStr ? new Date(dateStr).getTime() : null
+    setExpiresAt(ts)
+    await onUpdate(doc.id, { expiresAt: ts })
   }
 
   const handleDataChange = (data: Record<string, string>) => {
@@ -244,6 +252,27 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
       {/* Tags */}
       <div className="px-4 sm:px-6 py-3 border-b border-white/5 bg-surface/20">
         <TagEditor tags={tags} allTags={allTags} onChange={handleTagsChange} />
+        {/* Expiry date */}
+        <div className="flex items-center gap-2 mt-2">
+          <label className="text-xs text-dim/70 flex-shrink-0">Caduca:</label>
+          <input
+            type="date"
+            value={expiresAt ? new Date(expiresAt).toISOString().slice(0, 10) : ''}
+            onChange={(e) => handleExpiryChange(e.target.value)}
+            className="text-xs px-2 py-1 rounded-lg border border-white/10 bg-transparent text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 [color-scheme:dark]"
+            aria-label="Fecha de caducidad"
+          />
+          {expiresAt && (
+            <button
+              type="button"
+              onClick={() => handleExpiryChange('')}
+              className="text-xs text-dim/50 hover:text-err transition-colors"
+              aria-label="Quitar fecha de caducidad"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Datos estructurados */}
