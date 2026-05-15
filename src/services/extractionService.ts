@@ -8,7 +8,7 @@ export async function extractStructuredData(
   modelId: string,
 ): Promise<Record<string, string>> {
   if (!isLlmLoaded(modelId)) {
-    throw new Error('LLM not loaded — load a language model in the Models tab first.')
+    throw new Error('El LLM no está cargado — cárgalo en la pestaña Modelos primero.')
   }
 
   const schemaJson = JSON.stringify(
@@ -45,7 +45,12 @@ ${exampleJson}`
     throw new Error('El modelo no devolvió un JSON válido. Inténtalo de nuevo.')
   }
 
-  const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>
+  let parsed: Record<string, unknown>
+  try {
+    parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>
+  } catch {
+    throw new Error('El modelo devolvió JSON malformado. Inténtalo de nuevo.')
+  }
 
   const result: Record<string, string> = {}
   for (const field of schema) {

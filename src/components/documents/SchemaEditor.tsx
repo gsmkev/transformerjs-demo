@@ -32,7 +32,9 @@ export default function SchemaEditor({ schema, onChange }: Props) {
 
   const addField = () => {
     if (!draft.label.trim() || schema.length >= 15) return
-    const newField: ExtractionField = { ...draft, key: slugify(draft.label), label: draft.label.trim() }
+    const key = slugify(draft.label)
+    if (schema.some((f) => f.key === key)) return
+    const newField: ExtractionField = { ...draft, key, label: draft.label.trim() }
     onChange([...schema, newField])
     setDraft(EMPTY_FIELD())
   }
@@ -42,7 +44,7 @@ export default function SchemaEditor({ schema, onChange }: Props) {
       {schema.length > 0 && (
         <div className="space-y-2">
           {schema.map((field, i) => (
-            <div key={field.key + i} className="flex gap-2 items-start">
+            <div key={field.key} className="flex gap-2 items-start">
               <input
                 value={field.label}
                 onChange={(e) => updateField(i, { label: e.target.value })}

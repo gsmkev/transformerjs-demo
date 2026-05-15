@@ -21,6 +21,7 @@ export default function ExtractionTable({ schema, data, onChange }: Props) {
                 <input
                   value={data[field.key] ?? ''}
                   onChange={(e) => onChange({ ...data, [field.key]: e.target.value })}
+                  inputMode={field.type === 'number' ? 'decimal' : 'text'}
                   className={`w-full bg-transparent text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 rounded ${
                     field.type === 'number' ? 'text-right font-mono' : ''
                   }`}
