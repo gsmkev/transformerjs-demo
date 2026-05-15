@@ -30,15 +30,29 @@ interface Props {
   documents: ScannedDocument[]
   onClose: () => void
   onImportComplete: () => void
+  pinLock: {
+    hasPinSet: boolean
+    hasWebAuthn: boolean
+    setPin: (newPin: string, currentPin?: string) => Promise<boolean>
+    removePin: (currentPin: string) => Promise<boolean>
+    registerBiometric: (currentPin: string) => Promise<boolean>
+  }
 }
 
-export default function SettingsModal({ documents, onClose, onImportComplete }: Props) {
+export default function SettingsModal({ documents, onClose, onImportComplete, pinLock }: Props) {
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
   const [chatLimit, setChatLimit] = useState<number>(getChatLimit)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [pinFlow, setPinFlow] = useState<'none' | 'set' | 'change' | 'remove'>('none')
+  const [pinInput, setPinInput] = useState('')
+  const [pinConfirm, setPinConfirm] = useState('')
+  const [currentPinInput, setCurrentPinInput] = useState('')
+  const [pinError, setPinError] = useState<string | null>(null)
+  const [pinSuccess, setPinSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -152,6 +166,127 @@ export default function SettingsModal({ documents, onClose, onImportComplete }: 
                 ))}
               </div>
             </div>
+          </section>
+
+          {/* Seguridad */}
+          <section className="space-y-3">
+            <p className="section-label">Seguridad</p>
+
+            {pinFlow === 'none' ? (
+              <div className="space-y-2">
+                {!pinLock.hasPinSet ? (
+                  <Button variant="ghost" onClick={() => setPinFlow('set')} className="w-full py-2 text-xs justify-start">
+                    Activar PIN
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="ghost" onClick={() => setPinFlow('change')} className="w-full py-2 text-xs justify-start">
+                      Cambiar PIN
+                    </Button>
+                    <Button variant="ghost" onClick={() => setPinFlow('remove')} className="w-full py-2 text-xs justify-start text-err/70 hover:text-err hover:bg-err/10 hover:border-err/20">
+                      Desactivar PIN
+                    </Button>
+                    {typeof window !== 'undefined' && window.PublicKeyCredential && !pinLock.hasWebAuthn && (
+                      <Button variant="ghost" onClick={async () => {
+                        const ok = await pinLock.registerBiometric('')
+                        if (ok) setPinSuccess('Biométrico registrado')
+                      }} className="w-full py-2 text-xs justify-start">
+                        Activar huella / Face ID
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {(pinFlow === 'change' || pinFlow === 'remove') && (
+                  <div>
+                    <p className="text-xs text-dim mb-1">PIN actual</p>
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={currentPinInput}
+                      onChange={(e) => setCurrentPinInput(e.target.value.replace(/\D/g, ''))}
+                      className="w-full px-3 py-2 rounded-xl border border-white/10 bg-surface/60 text-sm text-ink tracking-widest text-center focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+                      placeholder="••••"
+                    />
+                  </div>
+                )}
+                {pinFlow !== 'remove' && (
+                  <>
+                    <div>
+                      <p className="text-xs text-dim mb-1">Nuevo PIN (4–6 dígitos)</p>
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={pinInput}
+                        onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+                        className="w-full px-3 py-2 rounded-xl border border-white/10 bg-surface/60 text-sm text-ink tracking-widest text-center focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+                        placeholder="••••"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-dim mb-1">Confirmar PIN</p>
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={pinConfirm}
+                        onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, ''))}
+                        className="w-full px-3 py-2 rounded-xl border border-white/10 bg-surface/60 text-sm text-ink tracking-widest text-center focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+                        placeholder="••••"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {pinError && <p className="text-xs text-err/80">{pinError}</p>}
+                {pinSuccess && <p className="text-xs text-ok/80">{pinSuccess}</p>}
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={async () => {
+                      setPinError(null)
+                      if (pinFlow === 'remove') {
+                        const ok = await pinLock.removePin(currentPinInput)
+                        if (!ok) { setPinError('PIN incorrecto'); return }
+                        setPinSuccess('PIN desactivado')
+                        setPinFlow('none')
+                      } else {
+                        if (pinInput.length < 4) { setPinError('El PIN debe tener al menos 4 dígitos'); return }
+                        if (pinInput !== pinConfirm) { setPinError('Los PINs no coinciden'); return }
+                        const ok = await pinLock.setPin(pinInput, pinFlow === 'change' ? currentPinInput : undefined)
+                        if (!ok) { setPinError('PIN actual incorrecto'); return }
+                        setPinSuccess('PIN actualizado')
+                        setPinFlow('none')
+                      }
+                      setPinInput('')
+                      setPinConfirm('')
+                      setCurrentPinInput('')
+                    }}
+                    className="flex-1 py-1.5 text-xs"
+                  >
+                    {pinFlow === 'remove' ? 'Desactivar' : 'Guardar'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setPinFlow('none')
+                      setPinError(null)
+                      setPinSuccess(null)
+                      setPinInput('')
+                      setPinConfirm('')
+                      setCurrentPinInput('')
+                    }}
+                    className="py-1.5 text-xs"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
           </section>
         </div>
       </div>

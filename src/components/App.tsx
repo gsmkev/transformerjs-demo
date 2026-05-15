@@ -22,6 +22,8 @@ import InstallButton from '@/components/ui/InstallButton'
 import { useTheme } from '@/hooks/useTheme'
 import SearchOverlay from '@/components/search/SearchOverlay'
 import SettingsModal from '@/components/ui/SettingsModal'
+import { usePinLock } from '@/hooks/usePinLock'
+import LockScreen from '@/components/ui/LockScreen'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('home')
@@ -31,6 +33,7 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
+  const pinLock = usePinLock()
   const { theme, toggle } = useTheme()
   const { engineStates, workersRef, initEngine, retryEngine } = useEngineManager()
   const { selectedId, setSelectedId } = useSelectedEngine()
@@ -118,6 +121,17 @@ export default function App() {
 
   const selectedDoc = selectedDocId ? documents.find((d) => d.id === selectedDocId) : null
   const allTags = Array.from(new Set(documents.flatMap((d) => d.tags ?? []))).sort()
+
+  if (pinLock.isLocked) {
+    return (
+      <LockScreen
+        hasWebAuthn={pinLock.hasWebAuthn}
+        onUnlock={pinLock.unlock}
+        onUnlockBiometric={pinLock.unlockWithBiometric}
+        onReset={pinLock.resetAll}
+      />
+    )
+  }
 
   return (
     <div className="min-h-screen text-ink">
@@ -295,6 +309,7 @@ export default function App() {
             if (typeof refresh === 'function') refresh()
             else window.location.reload()
           }}
+          pinLock={pinLock}
         />
       )}
     </div>
