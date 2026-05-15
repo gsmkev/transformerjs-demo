@@ -10,6 +10,7 @@ export interface ScannedDocument {
   updatedAt: number
   embedding: number[] | null  // 384-dim float32 from all-MiniLM-L6-v2
   category?: string | null    // keyword-classified document type
+  tags?: string[]             // user-defined labels, undefined = []
 }
 
 export interface DocumentChunk {
