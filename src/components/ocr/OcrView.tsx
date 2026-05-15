@@ -120,7 +120,7 @@ export default function OcrView({
 
         {/* Right column: result — sticky on desktop */}
         <div className="lg:sticky lg:top-[110px]">
-          <ResultPanel result={ocrResult} error={ocrError} />
+          <ResultPanel result={ocrResult} error={ocrError} selectedEngineId={selectedId} onSelectEngine={onSelectEngine} />
         </div>
       </div>
     </div>
