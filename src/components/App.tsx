@@ -11,7 +11,7 @@ import { useRag } from '@/hooks/useRag'
 import { classifyDocument } from '@/services/categoryService'
 import { indexDocument, removeDocumentChunks } from '@/services/chunkService'
 import TabBar from '@/components/tabs/TabBar'
-import EngineGrid from '@/components/engines/EngineGrid'
+import ModelsView from '@/components/models/ModelsView'
 import OcrView from '@/components/ocr/OcrView'
 import DocumentList from '@/components/documents/DocumentList'
 import DocumentEditor from '@/components/documents/DocumentEditor'
@@ -114,7 +114,14 @@ export default function App() {
           <DashboardView documents={documents} onNavigate={setTab} />
         </div>
         <div id="panel-engines" role="tabpanel" hidden={tab !== 'engines'}>
-          <EngineGrid engineStates={engineStates} selectedId={selectedId} onLoad={initEngine} onRetry={retryEngine} onSelect={setSelectedId} />
+          <ModelsView
+            engineStates={engineStates} selectedId={selectedId} onLoad={initEngine} onRetry={retryEngine} onSelect={setSelectedId}
+            embedStatus={rag.embedStatus} embedProgress={rag.embedProgress} embedError={rag.embedError} loadEmbedModel={rag.loadEmbedModel}
+            rerankerStatus={rag.rerankerStatus} rerankerProgress={rag.rerankerProgress} rerankerError={rag.rerankerError} loadReranker={rag.loadReranker}
+            llmStatus={rag.llmStatus} llmProgress={rag.llmProgress} llmProgressText={rag.llmProgressText} llmError={rag.llmError} loadLlm={rag.loadLlm}
+            selectedLlmId={rag.selectedLlmId} setSelectedLlmId={rag.setSelectedLlmId} webGpuAvailable={rag.webGpuAvailable}
+            responseLength={rag.responseLength} setResponseLength={rag.setResponseLength}
+          />
         </div>
         <div id="panel-ocr" role="tabpanel" hidden={tab !== 'ocr'}>
           <OcrView
@@ -145,7 +152,7 @@ export default function App() {
           )}
         </div>
         <div id="panel-rag" role="tabpanel" hidden={tab !== 'rag'}>
-          <RagView documents={documents} chunks={chunks} rag={rag} onEmbedDoc={handleEmbedDoc} onEmbedAll={handleEmbedAll} />
+          <RagView documents={documents} chunks={chunks} rag={rag} onEmbedDoc={handleEmbedDoc} onEmbedAll={handleEmbedAll} onNavigateToModels={() => setTab('engines')} />
         </div>
       </main>
     </div>
