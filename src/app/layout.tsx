@@ -39,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${jakarta.variable} ${mono.variable}`}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `(function(){var s=localStorage.getItem('papeleo_theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(s==='light'||(s===null&&!d)){document.documentElement.classList.add('light');}})();` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var s=localStorage.getItem('papeleo_theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(s==='light'||(s===null&&!d)){document.documentElement.classList.add('light');}}catch(e){}})();` }} />
         <link rel="apple-touch-icon" href="/icons/icon.svg" />
       </head>
       <body>
