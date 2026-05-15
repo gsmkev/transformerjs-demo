@@ -263,7 +263,7 @@ export default function App() {
               onRunOcr={() => {
                 if (!imageLoader.dataUrl) return
                 const sourceUrl = imageLoader.adjustedDataUrl ?? imageLoader.dataUrl
-                if (imageLoader.adjustedDataUrl || imageLoader.pages.length > 1) {
+                if (imageLoader.adjustedDataUrl || imageLoader.file?.type === 'application/pdf' || imageLoader.pages.length > 1) {
                   const [header, b64] = sourceUrl.split(',')
                   const mime = header.match(/:(.*?);/)?.[1] ?? 'image/jpeg'
                   const binary = atob(b64)
