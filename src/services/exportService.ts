@@ -1,12 +1,19 @@
 import type { ScannedDocument } from '@/types/document'
 
-export async function shareDocument(doc: ScannedDocument): Promise<boolean> {
-  if (!navigator.share) return false
+export async function shareDocument(doc: ScannedDocument): Promise<{ shared: boolean; copied: boolean }> {
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: doc.title, text: doc.rawText })
+      return { shared: true, copied: false }
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') return { shared: false, copied: false }
+    }
+  }
   try {
-    await navigator.share({ title: doc.title, text: doc.rawText })
-    return true
+    await navigator.clipboard.writeText(doc.rawText)
+    return { shared: false, copied: true }
   } catch {
-    return false
+    return { shared: false, copied: false }
   }
 }
 
