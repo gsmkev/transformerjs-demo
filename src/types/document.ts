@@ -11,6 +11,15 @@ export interface ScannedDocument {
   embedding: number[] | null  // 384-dim float32 from all-MiniLM-L6-v2
   category?: string | null    // keyword-classified document type
   tags?: string[]             // user-defined labels, undefined = []
+  extractionSchema?: ExtractionField[] | null
+  extractedData?: Record<string, string> | null
+}
+
+export interface ExtractionField {
+  key: string          // snake_case identifier, auto-generated from label
+  label: string        // human-readable name
+  type: 'text' | 'number'
+  description: string  // instruction for the LLM
 }
 
 export interface DocumentChunk {
