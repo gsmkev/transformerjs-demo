@@ -5,6 +5,7 @@ import type { ScannedDocument } from '@/types/document'
 import DocumentCard from './DocumentCard'
 import FilterDropdown, { type FilterState } from './FilterDropdown'
 import Button from '@/components/ui/Button'
+import ExportMenu from '@/components/ui/ExportMenu'
 
 interface Props {
   documents: ScannedDocument[]
@@ -32,6 +33,8 @@ function SkeletonCard() {
 export default function DocumentList({ documents, loading, onOpen, onDelete, onScanClick }: Props) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FilterState>({ category: null, tags: [] })
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   if (loading) {
     return (
@@ -128,16 +131,51 @@ export default function DocumentList({ documents, loading, onOpen, onDelete, onS
         </div>
       )}
 
-      <p className="section-label">{filtered.length} documento{filtered.length !== 1 ? 's' : ''}</p>
+      <div className="flex items-center gap-2">
+        <p className="section-label flex-1">{filtered.length} documento{filtered.length !== 1 ? 's' : ''}</p>
+        <button
+          onClick={() => { setSelectionMode((m) => !m); setSelectedIds(new Set()) }}
+          className={`text-xs px-2.5 py-1 rounded-lg border transition-all ${
+            selectionMode
+              ? 'bg-accent/15 border-accent/30 text-accent'
+              : 'border-white/10 text-dim hover:text-ink hover:bg-white/5'
+          }`}
+        >
+          {selectionMode ? 'Cancelar' : 'Seleccionar'}
+        </button>
+      </div>
 
       <div className="space-y-3">
         {filtered.map((doc) => (
-          <DocumentCard key={doc.id} doc={doc} onOpen={() => onOpen(doc.id)} onDelete={() => onDelete(doc.id)} />
+          <DocumentCard
+            key={doc.id}
+            doc={doc}
+            onOpen={() => onOpen(doc.id)}
+            onDelete={() => onDelete(doc.id)}
+            selectionMode={selectionMode}
+            isSelected={selectedIds.has(doc.id)}
+            onToggleSelect={() => setSelectedIds((prev) => {
+              const next = new Set(prev)
+              if (next.has(doc.id)) next.delete(doc.id)
+              else next.add(doc.id)
+              return next
+            })}
+          />
         ))}
         {filtered.length === 0 && (
           <p className="text-xs text-dim text-center py-6">No hay documentos que coincidan con tu búsqueda.</p>
         )}
       </div>
+
+      {selectionMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-20 sm:bottom-0 left-0 right-0 z-40 bg-base/90 backdrop-blur-xl border-t border-white/7 px-4 py-3 flex items-center gap-3">
+          <span className="text-xs text-dim flex-1">{selectedIds.size} seleccionado{selectedIds.size !== 1 ? 's' : ''}</span>
+          <ExportMenu docs={filtered.filter((d) => selectedIds.has(d.id))} />
+          <Button variant="ghost" onClick={() => { setSelectionMode(false); setSelectedIds(new Set()) }} className="py-1 px-3 text-xs">
+            Cancelar
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

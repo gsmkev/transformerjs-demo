@@ -11,20 +11,38 @@ const CATEGORY_LABELS: Record<string, string> = {
   otro: '📄 Otro',
 }
 
-interface Props { doc: ScannedDocument; onOpen: () => void; onDelete: () => void }
+interface Props {
+  doc: ScannedDocument
+  onOpen: () => void
+  onDelete: () => void
+  selectionMode?: boolean
+  isSelected?: boolean
+  onToggleSelect?: () => void
+}
 
-export default function DocumentCard({ doc, onOpen, onDelete }: Props) {
+export default function DocumentCard({ doc, onOpen, onDelete, selectionMode, isSelected, onToggleSelect }: Props) {
   const date = new Date(doc.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 
   return (
     <div
-      className="card card-interactive flex gap-4 group"
-      onClick={onOpen}
+      className="card card-interactive flex gap-4 group relative"
+      onClick={selectionMode ? onToggleSelect : onOpen}
       role="button"
       tabIndex={0}
-      aria-label={`Open document: ${doc.title}`}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen() } }}
+      aria-label={selectionMode ? `${isSelected ? 'Deselect' : 'Select'} document: ${doc.title}` : `Open document: ${doc.title}`}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectionMode ? onToggleSelect?.() : onOpen() } }}
     >
+      {selectionMode && (
+        <div className={`absolute top-2 left-2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+          isSelected ? 'bg-accent border-accent' : 'bg-surface border-white/30'
+        }`}>
+          {isSelected && (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          )}
+        </div>
+      )}
       {doc.imageDataUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={doc.imageDataUrl} alt="" aria-hidden="true" className="w-14 h-14 object-cover rounded-xl flex-shrink-0 bg-surface border border-white/7" />
