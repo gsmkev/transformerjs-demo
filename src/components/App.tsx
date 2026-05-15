@@ -11,6 +11,7 @@ import { useRag } from '@/hooks/useRag'
 import { useChatHistory } from '@/hooks/useChatHistory'
 import { useBatchOcr } from '@/hooks/useBatchOcr'
 import { classifyDocument } from '@/services/categoryService'
+import { summarizeDocument } from '@/services/summaryService'
 import { indexDocument, removeDocumentChunks } from '@/services/chunkService'
 import TabBar from '@/components/tabs/TabBar'
 import ModelsView from '@/components/models/ModelsView'
@@ -98,10 +99,11 @@ export default function App() {
   const handleEmbedDoc = useCallback(
     async (doc: (typeof documents)[number]) => {
       await indexDocument(doc.id, doc.rawText)
-      await update(doc.id, { embedding: [1] })
+      const summary = await summarizeDocument(doc.rawText, rag.selectedLlmId)
+      await update(doc.id, { embedding: [1], ...(summary ? { summary } : {}) })
       await refreshChunks()
     },
-    [update, refreshChunks],
+    [update, refreshChunks, rag.selectedLlmId],
   )
 
   const handleEmbedAll = useCallback(async () => {
