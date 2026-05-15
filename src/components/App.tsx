@@ -30,6 +30,7 @@ import SearchOverlay from '@/components/search/SearchOverlay'
 import SettingsModal from '@/components/ui/SettingsModal'
 import { usePinLock } from '@/hooks/usePinLock'
 import LockScreen from '@/components/ui/LockScreen'
+import { useAudioTranscription } from '@/hooks/useAudioTranscription'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('home')
@@ -68,6 +69,9 @@ export default function App() {
 
   const rag = useRag({ onAfterChat: chatHistory.saveHistory })
 
+  const audio = useAudioTranscription()
+  const [audioSaving, setAudioSaving] = useState(false)
+
   const handleTabChange = useCallback((t: Tab) => {
     setTab(t)
     setActiveKey((k) => k + 1)
@@ -104,6 +108,27 @@ export default function App() {
       setSaving(false)
     }
   }, [imageLoader.adjustedDataUrl, imageLoader.dataUrl, ocr.result, create, selectedId, handleTabChange, chunks, documents])
+
+  const handleAudioSave = useCallback(async (text: string) => {
+    setAudioSaving(true)
+    try {
+      const firstLine = text.split('\n').find((l) => l.trim()) ?? 'Transcripción de audio'
+      const category = classifyDocument(text)
+      const doc = await create({
+        title: firstLine.slice(0, 80),
+        imageDataUrl: '',
+        rawText: text,
+        richText: '',
+        engineId: 'whisper-tiny',
+        confidence: null,
+        category,
+      })
+      setSelectedDocId(doc.id)
+      handleTabChange('documents')
+    } finally {
+      setAudioSaving(false)
+    }
+  }, [create, handleTabChange])
 
   const handleEmbedDoc = useCallback(
     async (doc: (typeof documents)[number]) => {
@@ -283,6 +308,9 @@ export default function App() {
               cameraInputRef={dropzoneCameraRef}
               batchOcr={batchOcr}
               onNavigateToLibrary={() => handleTabChange('documents')}
+              audio={audio}
+              onAudioSave={handleAudioSave}
+              audioSaving={audioSaving}
             />
           </div>
         </div>
