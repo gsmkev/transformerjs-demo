@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, DragEvent, useEffect } from 'react'
+import { pdfToImages } from '@/lib/pdfToImages'
 
 async function loadImage(dataUrl: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -68,10 +69,28 @@ export function useImageLoader() {
 
   const addPage = useCallback((f: File) => {
     setFileTypeError(null)
-    if (!f.type.startsWith('image/')) {
-      setFileTypeError(`"${f.name}" is not an image file.`)
+
+    if (f.type === 'application/pdf') {
+      pdfToImages(f).then((urls) => {
+        if (urls.length === 0) {
+          setFileTypeError(`"${f.name}" no contiene páginas renderizables.`)
+          return
+        }
+        setPages((prev) => {
+          if (prev.length === 0) setFile(f)
+          return [...prev, ...urls]
+        })
+      }).catch(() => {
+        setFileTypeError(`No se pudo leer "${f.name}" como PDF.`)
+      })
       return
     }
+
+    if (!f.type.startsWith('image/')) {
+      setFileTypeError(`"${f.name}" no es una imagen ni un PDF.`)
+      return
+    }
+
     readFileAsDataUrl(f).then((url) => {
       setPages((prev) => {
         if (prev.length === 0) setFile(f)
