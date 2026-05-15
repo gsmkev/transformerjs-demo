@@ -5,6 +5,7 @@ import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import type { ScannedDocument } from '@/types/document'
 import Button from '@/components/ui/Button'
+import Toast from '@/components/ui/Toast'
 import { shareDocument, printDocument } from '@/services/exportService'
 
 const AUTOSAVE_MS = 900
@@ -68,6 +69,8 @@ export default function DocumentEditor({ doc, ragModelReady, onUpdate, onEmbed, 
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [embedding, setEmbedding] = useState(false)
   const [showOriginal, setShowOriginal] = useState(false)
+  const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const canShare = typeof navigator !== 'undefined' && !!navigator.share
   const saveTimer = useRef<ReturnType<typeof setTimeout>>()
 
   const scheduleSave = useCallback(
@@ -107,6 +110,11 @@ export default function DocumentEditor({ doc, ragModelReady, onUpdate, onEmbed, 
     try { await onEmbed(doc) } finally { setEmbedding(false) }
   }
 
+  const handleShare = async () => {
+    const result = await shareDocument(doc)
+    if (result.copied) setToastMsg('Texto copiado al portapapeles')
+  }
+
   const saveStatusDisplay: Record<SaveStatus, { label: string; cls: string }> = {
     saved:   { label: 'Saved',     cls: 'text-ok/80'   },
     saving:  { label: 'Saving…',   cls: 'text-info/80' },
@@ -137,11 +145,9 @@ export default function DocumentEditor({ doc, ragModelReady, onUpdate, onEmbed, 
             {doc.embedding ? 'Re-index' : 'Index for RAG'}
           </Button>
         )}
-        {typeof navigator !== 'undefined' && !!navigator.share && (
-          <Button variant="ghost" onClick={() => shareDocument(doc)} className="py-1 px-2.5 text-xs flex-shrink-0">
-            Compartir
-          </Button>
-        )}
+        <Button variant="ghost" onClick={handleShare} className="py-1 px-2.5 text-xs flex-shrink-0">
+          {canShare ? 'Compartir' : 'Copiar texto'}
+        </Button>
         <Button variant="ghost" onClick={() => printDocument(doc)} className="py-1 px-2.5 text-xs flex-shrink-0">
           Exportar PDF
         </Button>
@@ -189,6 +195,7 @@ export default function DocumentEditor({ doc, ragModelReady, onUpdate, onEmbed, 
           <EditorContent editor={editor} className="flex-1 overflow-y-auto tiptap-editor" />
         </>
       )}
+      {toastMsg && <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />}
     </div>
   )
 }
