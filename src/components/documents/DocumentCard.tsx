@@ -60,7 +60,7 @@ export default function DocumentCard({ doc, onOpen, onDelete, selectionMode, isS
       )}
       <div className="flex-1 min-w-0 pr-6">
         <p className="font-semibold text-ink truncate leading-snug">{doc.title}</p>
-        <p className="text-xs text-dim mt-1.5 line-clamp-2 leading-relaxed">{doc.rawText.slice(0, 120)}</p>
+        <p className="text-xs text-dim mt-1.5 line-clamp-2 leading-relaxed">{doc.summary ?? doc.rawText.slice(0, 120)}</p>
         <div className="flex items-center gap-2.5 mt-2.5 flex-wrap">
           <span className="text-xs text-dim/70">{date}</span>
           {doc.confidence !== null && <span className="text-xs text-dim/70 font-mono">{doc.confidence.toFixed(0)}% conf.</span>}
