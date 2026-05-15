@@ -97,7 +97,9 @@ export default function OcrView({
                     ...dragHandlers,
                     onDrop: (e) => {
                       e.preventDefault()
-                      const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'))
+                      const files = Array.from(e.dataTransfer.files).filter(
+                        (f) => f.type.startsWith('image/') || f.type === 'application/pdf'
+                      )
                       batchOcr.addFiles(files)
                       dragHandlers.onDrop(e)
                     },

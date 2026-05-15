@@ -28,7 +28,7 @@ export default function Dropzone({ isDragOver, fileTypeError, onFile, dragHandle
         onKeyDown={onKeyDown}
         role="button"
         tabIndex={0}
-        aria-label="Upload image for OCR — click or drag and drop"
+        aria-label="Upload image or PDF for OCR — click or drag and drop"
         className={`cursor-pointer rounded-2xl border-2 border-dashed transition-all p-10 flex flex-col items-center justify-center gap-3 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${
           isDragOver
             ? 'border-accent bg-accent/8 shadow-accent-glow'
@@ -46,12 +46,12 @@ export default function Dropzone({ isDragOver, fileTypeError, onFile, dragHandle
         </div>
         <div>
           <p className="text-sm text-ink/80">Drop an image here, or <span className="text-accent font-medium">browse</span></p>
-          <p className="text-xs text-dim/60 mt-1">PNG, JPG, WEBP, BMP, TIFF</p>
+          <p className="text-xs text-dim/60 mt-1">PNG, JPG, WEBP, BMP, TIFF · PDF</p>
         </div>
         <input
           ref={fileInputRef as Ref<HTMLInputElement>}
           type="file"
-          accept="image/*"
+          accept="image/*,application/pdf"
           className="hidden"
           aria-hidden="true"
           tabIndex={-1}
