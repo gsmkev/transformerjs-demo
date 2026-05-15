@@ -6,7 +6,9 @@ import StarterKit from '@tiptap/starter-kit'
 import type { ScannedDocument } from '@/types/document'
 import Button from '@/components/ui/Button'
 import Toast from '@/components/ui/Toast'
-import { shareDocument, printDocument } from '@/services/exportService'
+import { shareDocument } from '@/services/exportService'
+import PdfExportModal from './PdfExportModal'
+import PrintArea from './PrintArea'
 
 const AUTOSAVE_MS = 900
 
@@ -71,6 +73,8 @@ export default function DocumentEditor({ doc, ragModelReady, onUpdate, onEmbed, 
   const [showOriginal, setShowOriginal] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const canShare = typeof navigator !== 'undefined' && !!navigator.share
+  const [showPdfModal, setShowPdfModal] = useState(false)
+  const [printIncludeImage, setPrintIncludeImage] = useState(true)
   const saveTimer = useRef<ReturnType<typeof setTimeout>>()
 
   const scheduleSave = useCallback(
@@ -108,6 +112,12 @@ export default function DocumentEditor({ doc, ragModelReady, onUpdate, onEmbed, 
   const handleEmbed = async () => {
     setEmbedding(true)
     try { await onEmbed(doc) } finally { setEmbedding(false) }
+  }
+
+  const handlePrint = (includeImage: boolean) => {
+    setPrintIncludeImage(includeImage)
+    setShowPdfModal(false)
+    setTimeout(() => window.print(), 50)
   }
 
   const handleShare = async () => {
@@ -148,8 +158,8 @@ export default function DocumentEditor({ doc, ragModelReady, onUpdate, onEmbed, 
         <Button variant="ghost" onClick={handleShare} className="py-1 px-2.5 text-xs flex-shrink-0">
           {canShare ? 'Compartir' : 'Copiar texto'}
         </Button>
-        <Button variant="ghost" onClick={() => printDocument(doc)} className="py-1 px-2.5 text-xs flex-shrink-0">
-          Exportar PDF
+        <Button variant="ghost" onClick={() => setShowPdfModal(true)} className="py-1 px-2.5 text-xs flex-shrink-0">
+          PDF
         </Button>
         <Button variant="ghost" onClick={handleDelete} className="py-1 px-2.5 text-xs flex-shrink-0 text-err/80 hover:text-err hover:bg-err/10 hover:border-err/20">
           Eliminar
@@ -196,6 +206,14 @@ export default function DocumentEditor({ doc, ragModelReady, onUpdate, onEmbed, 
         </>
       )}
       {toastMsg && <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />}
+      {showPdfModal && (
+        <PdfExportModal
+          hasImage={!!doc.imageDataUrl}
+          onConfirm={handlePrint}
+          onClose={() => setShowPdfModal(false)}
+        />
+      )}
+      <PrintArea doc={doc} includeImage={printIncludeImage} />
     </div>
   )
 }
