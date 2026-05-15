@@ -39,7 +39,7 @@ function blockXml(n: TiptapNode): string {
     case 'paragraph':
       return `<text:p text:style-name="Text_20_Body">${inlineXml(n.content)}</text:p>`
     case 'heading': {
-      const level = (n.attrs?.level as number) ?? 1
+      const level = Math.min(Math.max(Math.round(Number(n.attrs?.level ?? 1)), 1), 6)
       return `<text:h text:style-name="Heading_20_${level}" text:outline-level="${level}">${inlineXml(n.content)}</text:h>`
     }
     case 'blockquote':

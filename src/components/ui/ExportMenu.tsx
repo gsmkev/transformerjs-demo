@@ -24,7 +24,7 @@ export default function ExportMenu({ doc, docs }: Props) {
 
   const targets = docs ?? (doc ? [doc] : [])
   const isBulk = !!docs
-  const showImageOption = format !== 'ods'
+  const showImageOption = format === 'docx'
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
