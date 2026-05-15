@@ -20,6 +20,7 @@ export interface ScannedDocument {
   extractedData?: Record<string, string> | null
   expiresAt?: number | null          // Unix ms — optional expiry date
   summary?: string | null            // LLM-generated summary
+  collectionId?: string | null
   exportHistory?: ExportHistoryEntry[]
 }
 
@@ -57,4 +58,11 @@ export interface ChatHistory {
   messages: ChatMessage[]
   createdAt: number
   updatedAt: number
+}
+
+export interface Collection {
+  id: string
+  name: string
+  color: string    // hex color, e.g. "#6366f1"
+  createdAt: number
 }

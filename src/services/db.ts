@@ -1,8 +1,8 @@
 import { openDB, type IDBPDatabase } from 'idb'
-import type { ScannedDocument, DocumentChunk, ChatHistory } from '@/types/document'
+import type { ScannedDocument, DocumentChunk, ChatHistory, Collection } from '@/types/document'
 
 const DB_NAME = 'local-ocr-v1'
-const DB_VERSION = 4
+const DB_VERSION = 5
 
 export type DocStore = {
   documents: {
@@ -18,6 +18,11 @@ export type DocStore = {
   chat_histories: {
     key: string
     value: ChatHistory
+    indexes: { createdAt: number }
+  }
+  collections: {
+    key: string
+    value: Collection
     indexes: { createdAt: number }
   }
 }
@@ -41,6 +46,10 @@ export async function getDb(): Promise<IDBPDatabase<DocStore>> {
       }
       if (oldVersion < 4) {
         const store = db.createObjectStore('chat_histories', { keyPath: 'id' })
+        store.createIndex('createdAt', 'createdAt')
+      }
+      if (oldVersion < 5) {
+        const store = db.createObjectStore('collections', { keyPath: 'id' })
         store.createIndex('createdAt', 'createdAt')
       }
     },
