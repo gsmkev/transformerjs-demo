@@ -13,9 +13,11 @@ export default function PrintArea({ doc, includeImage }: Props) {
     year: 'numeric', month: 'long', day: 'numeric',
   })
 
+  const escaped = doc.rawText
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   const bodyHtml = doc.richText
     ? richTextToHtml(doc.richText)
-    : `<p>${doc.rawText.replace(/\n/g, '</p><p>').replace(/  +/g, ' ')}</p>`
+    : `<p>${escaped.replace(/\n/g, '</p><p>').replace(/  +/g, ' ')}</p>`
 
   return (
     <div id="papeleo-print-area" style={{ display: 'none' }}>

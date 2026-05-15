@@ -29,7 +29,7 @@ function blockNode(n: TiptapNode): string {
   switch (n.type) {
     case 'paragraph': return `<p>${inner || '&nbsp;'}</p>`
     case 'heading': {
-      const level = (n.attrs?.level as number) ?? 1
+      const level = Math.min(3, Math.max(1, (n.attrs?.level as number) ?? 1))
       return `<h${level}>${inner}</h${level}>`
     }
     case 'blockquote': return `<blockquote>${(n.content ?? []).map(blockNode).join('')}</blockquote>`
