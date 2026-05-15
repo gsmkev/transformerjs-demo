@@ -48,6 +48,10 @@ export default function SearchOverlay({ documents, onNavigate, onClose }: Props)
     return () => window.removeEventListener('keydown', handleKey)
   }, [onClose])
 
+  useEffect(() => {
+    return () => clearTimeout(debounceRef.current)
+  }, [])
+
   const handleChange = useCallback((q: string) => {
     setQuery(q)
     clearTimeout(debounceRef.current)

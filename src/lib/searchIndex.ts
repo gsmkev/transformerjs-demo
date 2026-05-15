@@ -17,7 +17,8 @@ function extractSnippet(text: string, query: string): string {
   const end = Math.min(text.length, idx + firstTerm.length + 70)
   const before = start > 0 ? '…' : ''
   const after = end < text.length ? '…' : ''
-  return before + text.slice(start, end).trim() + after
+  const raw = before + text.slice(start, end).trim() + after
+  return raw.length > 140 ? raw.slice(0, 137) + '…' : raw
 }
 
 export function searchDocuments(query: string, documents: ScannedDocument[]): SearchResult[] {
