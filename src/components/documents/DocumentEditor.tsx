@@ -11,6 +11,10 @@ import ExportMenu from '@/components/ui/ExportMenu'
 import PdfExportModal from './PdfExportModal'
 import PrintArea from './PrintArea'
 import TagEditor from './TagEditor'
+import SchemaEditor from './SchemaEditor'
+import ExtractionTable from './ExtractionTable'
+import { extractStructuredData } from '@/services/extractionService'
+import type { ExtractionField } from '@/types/document'
 
 const AUTOSAVE_MS = 900
 
@@ -61,6 +65,8 @@ interface Props {
   doc: ScannedDocument
   ragModelReady: boolean
   allTags: string[]
+  llmModelId: string
+  llmReady: boolean
   onUpdate: (id: string, patch: Partial<ScannedDocument>) => Promise<void>
   onEmbed: (doc: ScannedDocument) => Promise<void>
   onBack: () => void
@@ -69,12 +75,17 @@ interface Props {
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved'
 
-export default function DocumentEditor({ doc, ragModelReady, allTags, onUpdate, onEmbed, onBack, onDelete }: Props) {
+export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId, llmReady, onUpdate, onEmbed, onBack, onDelete }: Props) {
   const [title, setTitle] = useState(doc.title)
   const [tags, setTags] = useState<string[]>(doc.tags ?? [])
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [embedding, setEmbedding] = useState(false)
   const [showOriginal, setShowOriginal] = useState(false)
+  const [editingSchema, setEditingSchema] = useState(false)
+  const [extracting, setExtracting] = useState(false)
+  const [extractionError, setExtractionError] = useState<string | null>(null)
+  const [localSchema, setLocalSchema] = useState<ExtractionField[]>(doc.extractionSchema ?? [])
+  const [localData, setLocalData] = useState<Record<string, string>>(doc.extractedData ?? {})
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const canShare = typeof navigator !== 'undefined' && !!navigator.share
   const [showPdfModal, setShowPdfModal] = useState(false)
@@ -132,6 +143,31 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, onUpdate, 
   const handleShare = async () => {
     const result = await shareDocument(doc)
     if (result.copied) setToastMsg('Texto copiado al portapapeles')
+  }
+
+  const handleSaveSchema = async (schema: ExtractionField[]) => {
+    setLocalSchema(schema)
+    setEditingSchema(false)
+    await onUpdate(doc.id, { extractionSchema: schema })
+  }
+
+  const handleExtract = async () => {
+    setExtracting(true)
+    setExtractionError(null)
+    try {
+      const data = await extractStructuredData(doc.rawText, localSchema, llmModelId)
+      setLocalData(data)
+      await onUpdate(doc.id, { extractedData: data })
+    } catch (err) {
+      setExtractionError(String(err).replace('Error: ', ''))
+    } finally {
+      setExtracting(false)
+    }
+  }
+
+  const handleDataChange = async (data: Record<string, string>) => {
+    setLocalData(data)
+    await onUpdate(doc.id, { extractedData: data })
   }
 
   const saveStatusDisplay: Record<SaveStatus, { label: string; cls: string }> = {
@@ -199,6 +235,64 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, onUpdate, 
       {/* Tags */}
       <div className="px-4 sm:px-6 py-3 border-b border-white/5 bg-surface/20">
         <TagEditor tags={tags} allTags={allTags} onChange={handleTagsChange} />
+      </div>
+
+      {/* Datos estructurados */}
+      <div className="px-4 sm:px-6 py-3 border-b border-white/5 bg-surface/20 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="section-label">Datos estructurados</p>
+          {localSchema.length > 0 && !editingSchema && (
+            <button
+              type="button"
+              onClick={() => setEditingSchema(true)}
+              className="text-xs text-dim/60 hover:text-dim transition-colors"
+            >
+              Editar schema
+            </button>
+          )}
+        </div>
+
+        {editingSchema || localSchema.length === 0 ? (
+          <div className="space-y-3">
+            <SchemaEditor schema={localSchema} onChange={setLocalSchema} />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleSaveSchema(localSchema)}
+                disabled={localSchema.length === 0}
+                className="text-xs px-3 py-1.5 rounded-lg bg-accent/15 border border-accent/30 text-accent disabled:opacity-40 transition-colors hover:bg-accent/20"
+              >
+                Guardar schema
+              </button>
+              {editingSchema && (
+                <button type="button" onClick={() => setEditingSchema(false)} className="text-xs text-dim hover:text-ink transition-colors">
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {Object.keys(localData).length > 0 ? (
+              <ExtractionTable schema={localSchema} data={localData} onChange={handleDataChange} />
+            ) : (
+              !llmReady && (
+                <p className="text-xs text-info/80">El LLM no está cargado — cárgalo en la pestaña Modelos.</p>
+              )
+            )}
+            <button
+              type="button"
+              onClick={handleExtract}
+              disabled={extracting || !llmReady}
+              className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-dim hover:text-ink hover:bg-white/5 disabled:opacity-40 transition-colors"
+            >
+              {extracting ? 'Extrayendo…' : Object.keys(localData).length > 0 ? 'Re-extraer' : 'Extraer con IA'}
+            </button>
+            {extractionError && (
+              <p className="text-xs text-err/80">{extractionError}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Content */}

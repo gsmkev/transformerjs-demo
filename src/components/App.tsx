@@ -241,6 +241,8 @@ export default function App() {
                 doc={selectedDoc}
                 ragModelReady={rag.embedStatus === 'ready'}
                 allTags={allTags}
+                llmModelId={rag.selectedLlmId}
+                llmReady={rag.llmStatus === 'ready'}
                 onUpdate={update}
                 onEmbed={handleEmbedDoc}
                 onBack={() => setSelectedDocId(null)}
