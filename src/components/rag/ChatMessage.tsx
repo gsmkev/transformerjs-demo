@@ -1,4 +1,4 @@
-import type { ChatMessage as ChatMsg } from '@/hooks/useRag'
+import type { ChatMessage as ChatMsg } from '@/types/document'
 import { renderMarkdown } from '@/lib/renderMarkdown'
 
 interface Props { message: ChatMsg; streaming?: boolean }

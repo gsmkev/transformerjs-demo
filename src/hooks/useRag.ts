@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import type { ScannedDocument, DocumentChunk } from '@/types/document'
+import type { ScannedDocument, DocumentChunk, ChatMessage } from '@/types/document'
 import { getExtractor, embed, cosineSimilarity, isEmbedderLoaded } from '@/services/embeddingService'
 import { getReranker, rerankPassages, isRerankerLoaded } from '@/services/rerankService'
 import { checkWebGpu, loadLlmModel, streamGenerate, isLlmLoaded } from '@/services/llmService'
@@ -10,13 +10,6 @@ import { LLM_MODELS } from '@/config/llmModels'
 
 export type ModelStatus = 'idle' | 'loading' | 'ready' | 'error'
 export type ResponseLength = 'concise' | 'normal' | 'detailed'
-
-export interface ChatMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  sources?: ScannedDocument[]
-}
 
 // ── Response-length presets ───────────────────────────────────────────────────
 

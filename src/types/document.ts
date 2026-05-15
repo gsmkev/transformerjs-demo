@@ -35,3 +35,18 @@ export interface RagResult {
   score: number           // cosine similarity 0-1
   excerpt: string         // first ~280 chars of rawText
 }
+
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  sources?: ScannedDocument[]
+}
+
+export interface ChatHistory {
+  id: string
+  title: string
+  messages: ChatMessage[]
+  createdAt: number
+  updatedAt: number
+}
