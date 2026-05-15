@@ -295,6 +295,13 @@ progress::-moz-progress-bar {
   80%       { transform: translateX(5px); }
 }
 
+.annotation-highlight {
+  background-color: rgb(var(--color-accent-rgb) / 0.18);
+  border-bottom: 2px solid rgb(var(--color-accent-rgb) / 0.6);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
 /* ── Print / PDF export ─────────────────────────────────────────────── */
 @media print {
   body > * { display: none !important; }
