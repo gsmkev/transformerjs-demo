@@ -1,3 +1,56 @@
+/* ── Theme tokens ───────────────────────────────────────────────────── */
+:root {
+  --color-void:     #04050b;
+  --color-base:     #07080f;
+  --color-surface:  #0d1018;
+  --color-surface2: #141926;
+  --color-rim:      #1d2235;
+
+  --color-accent:       #0d9488;
+  --color-accent-light: #2dd4bf;
+  --color-accent-dark:  #0f766e;
+  --color-accent-glow:  rgba(13,148,136,0.22);
+  --color-accent-muted: rgba(13,148,136,0.10);
+
+  --color-ink:   #eaecf5;
+  --color-dim:   #7880a0;
+  --color-muted: #434c66;
+
+  --color-ok:   #22c55e;
+  --color-err:  #f43f5e;
+  --color-warn: #f59e0b;
+  --color-info: #38bdf8;
+
+  --glass-bg:     rgba(255,255,255,0.05);
+  --glass-border: rgba(255,255,255,0.07);
+}
+
+html.light {
+  --color-void:     #f0f2f8;
+  --color-base:     #f8f9fc;
+  --color-surface:  #ffffff;
+  --color-surface2: #eef0f6;
+  --color-rim:      #dde1ee;
+
+  --color-accent:       #0d9488;
+  --color-accent-light: #0f766e;
+  --color-accent-dark:  #115e59;
+  --color-accent-glow:  rgba(13,148,136,0.15);
+  --color-accent-muted: rgba(13,148,136,0.08);
+
+  --color-ink:   #0f1117;
+  --color-dim:   #4a5270;
+  --color-muted: #9aa0bb;
+
+  --color-ok:   #16a34a;
+  --color-err:  #e11d48;
+  --color-warn: #d97706;
+  --color-info: #0284c7;
+
+  --glass-bg:     rgba(0,0,0,0.04);
+  --glass-border: rgba(0,0,0,0.08);
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
