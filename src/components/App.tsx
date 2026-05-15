@@ -9,6 +9,7 @@ import { useOcr } from '@/hooks/useOcr'
 import { useDocuments } from '@/hooks/useDocuments'
 import { useRag } from '@/hooks/useRag'
 import { classifyDocument } from '@/services/categoryService'
+import { indexDocument, removeDocumentChunks } from '@/services/chunkService'
 import TabBar from '@/components/tabs/TabBar'
 import EngineGrid from '@/components/engines/EngineGrid'
 import OcrView from '@/components/ocr/OcrView'
@@ -27,7 +28,7 @@ export default function App() {
   const { selectedId, setSelectedId } = useSelectedEngine()
   const imageLoader = useImageLoader()
   const ocr = useOcr({ workersRef, selectedId })
-  const { documents, loading: docsLoading, create, update, remove } = useDocuments()
+  const { documents, chunks, loading: docsLoading, create, update, remove, refreshChunks } = useDocuments()
   const rag = useRag()
 
   const handleSave = useCallback(async () => {
@@ -54,10 +55,12 @@ export default function App() {
 
   const handleEmbedDoc = useCallback(
     async (doc: (typeof documents)[number]) => {
-      const embedding = await rag.embedDoc(doc)
-      await update(doc.id, { embedding })
+      await indexDocument(doc.id, doc.rawText)
+      // Use [1] as a truthy flag — actual embeddings live in the chunks store
+      await update(doc.id, { embedding: [1] })
+      await refreshChunks()
     },
-    [rag, update],
+    [update, refreshChunks],
   )
 
   const handleEmbedAll = useCallback(async () => {
@@ -65,6 +68,12 @@ export default function App() {
       await handleEmbedDoc(doc)
     }
   }, [documents, handleEmbedDoc])
+
+  const handleRemoveDoc = useCallback(async (id: string) => {
+    await removeDocumentChunks(id)
+    await remove(id)
+    await refreshChunks()
+  }, [remove, refreshChunks])
 
   const selectedDoc = selectedDocId ? documents.find((d) => d.id === selectedDocId) : null
 
@@ -129,14 +138,14 @@ export default function App() {
               onUpdate={update}
               onEmbed={handleEmbedDoc}
               onBack={() => setSelectedDocId(null)}
-              onDelete={async (id) => { await remove(id); setSelectedDocId(null) }}
+              onDelete={async (id) => { await handleRemoveDoc(id); setSelectedDocId(null) }}
             />
           ) : (
-            <DocumentList documents={documents} loading={docsLoading} onOpen={setSelectedDocId} onDelete={remove} />
+            <DocumentList documents={documents} loading={docsLoading} onOpen={setSelectedDocId} onDelete={handleRemoveDoc} />
           )}
         </div>
         <div id="panel-rag" role="tabpanel" hidden={tab !== 'rag'}>
-          <RagView documents={documents} rag={rag} onEmbedDoc={handleEmbedDoc} onEmbedAll={handleEmbedAll} />
+          <RagView documents={documents} chunks={chunks} rag={rag} onEmbedDoc={handleEmbedDoc} onEmbedAll={handleEmbedAll} />
         </div>
       </main>
     </div>

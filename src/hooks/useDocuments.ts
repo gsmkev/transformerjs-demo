@@ -1,23 +1,31 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import type { ScannedDocument } from '@/types/document'
+import type { ScannedDocument, DocumentChunk } from '@/types/document'
 import {
   saveDocument,
   getAllDocuments,
   updateDocument,
   deleteDocument,
+  getAllChunks,
 } from '@/services/documentStorage'
 
 type CreatePayload = Omit<ScannedDocument, 'id' | 'createdAt' | 'updatedAt' | 'embedding'>
 
 export function useDocuments() {
   const [documents, setDocuments] = useState<ScannedDocument[]>([])
-  const [loading, setLoading] = useState(true)
+  const [chunks, setChunks]       = useState<DocumentChunk[]>([])
+  const [loading, setLoading]     = useState(true)
+
+  const refreshChunks = useCallback(async () => {
+    const all = await getAllChunks()
+    setChunks(all)
+  }, [])
 
   const refresh = useCallback(async () => {
-    const all = await getAllDocuments()
-    setDocuments(all.sort((a, b) => b.createdAt - a.createdAt))
+    const [allDocs, allChunks] = await Promise.all([getAllDocuments(), getAllChunks()])
+    setDocuments(allDocs.sort((a, b) => b.createdAt - a.createdAt))
+    setChunks(allChunks)
   }, [])
 
   useEffect(() => {
@@ -48,5 +56,5 @@ export function useDocuments() {
     setDocuments((prev) => prev.filter((d) => d.id !== id))
   }, [])
 
-  return { documents, loading, create, update, remove, refresh } as const
+  return { documents, chunks, loading, create, update, remove, refresh, refreshChunks } as const
 }

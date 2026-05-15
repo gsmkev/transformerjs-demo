@@ -12,6 +12,14 @@ export interface ScannedDocument {
   category?: string | null    // keyword-classified document type
 }
 
+export interface DocumentChunk {
+  id: string          // `${docId}_c${chunkIndex}`
+  docId: string
+  chunkIndex: number
+  text: string        // ~300 chars fragment
+  embedding: number[] // 384-dim, always present
+}
+
 export interface RagResult {
   doc: ScannedDocument
   score: number           // cosine similarity 0-1

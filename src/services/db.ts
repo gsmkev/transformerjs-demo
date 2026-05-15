@@ -1,14 +1,19 @@
 import { openDB, type IDBPDatabase } from 'idb'
-import type { ScannedDocument } from '@/types/document'
+import type { ScannedDocument, DocumentChunk } from '@/types/document'
 
 const DB_NAME = 'local-ocr-v1'
-const DB_VERSION = 2
+const DB_VERSION = 3
 
 export type DocStore = {
   documents: {
     key: string
     value: ScannedDocument
     indexes: { createdAt: number; category: string }
+  }
+  chunks: {
+    key: string
+    value: DocumentChunk
+    indexes: { docId: string }
   }
 }
 
@@ -24,6 +29,10 @@ export async function getDb(): Promise<IDBPDatabase<DocStore>> {
       }
       if (oldVersion < 2) {
         tx.objectStore('documents').createIndex('category', 'category')
+      }
+      if (oldVersion < 3) {
+        const store = db.createObjectStore('chunks', { keyPath: 'id' })
+        store.createIndex('docId', 'docId')
       }
     },
   })

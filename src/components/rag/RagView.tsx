@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, FormEvent } from 'react'
-import type { ScannedDocument } from '@/types/document'
+import type { ScannedDocument, DocumentChunk } from '@/types/document'
 import type { useRag, ResponseLength } from '@/hooks/useRag'
 import { LLM_MODELS } from '@/config/llmModels'
 import Button from '@/components/ui/Button'
@@ -10,6 +10,7 @@ import ChatMessage from './ChatMessage'
 
 interface Props {
   documents: ScannedDocument[]
+  chunks: DocumentChunk[]
   rag: ReturnType<typeof useRag>
   onEmbedDoc: (doc: ScannedDocument) => Promise<void>
   onEmbedAll: () => Promise<void>
@@ -97,7 +98,7 @@ function ResponseLengthPicker({ value, onChange }: { value: ResponseLength; onCh
   )
 }
 
-export default function RagView({ documents, rag, onEmbedDoc: _onEmbedDoc, onEmbedAll }: Props) {
+export default function RagView({ documents, chunks, rag, onEmbedDoc: _onEmbedDoc, onEmbedAll }: Props) {
   const [input, setInput] = useState('')
   const [indexing, setIndexing] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -113,7 +114,7 @@ export default function RagView({ documents, rag, onEmbedDoc: _onEmbedDoc, onEmb
     const q = input.trim()
     if (!q || rag.streaming) return
     setInput('')
-    rag.chat(q, documents)
+    rag.chat(q, documents, chunks)
   }
 
   const handleEmbedAll = async () => {
@@ -172,7 +173,9 @@ export default function RagView({ documents, rag, onEmbedDoc: _onEmbedDoc, onEmb
             <div>
               <p className="section-label mb-1">Document Index</p>
               <p className="text-xs text-dim leading-relaxed">
-                {documents.length === 0 ? 'No documents yet.' : `${embeddedCount} / ${documents.length} indexed`}
+                {documents.length === 0
+                ? 'No documents yet.'
+                : `${embeddedCount} / ${documents.length} docs · ${chunks.length} fragments`}
               </p>
             </div>
             {documents.length > 0 && (

@@ -34,8 +34,8 @@ export async function rerankPassages(query: string, passages: string[]): Promise
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result = await (reranker as any)(query, {
-          text_pair: passage.slice(0, 512),
-          truncation: true,
+          text_pair: passage,  // chunks are ~350 chars — no need to slice
+          truncation: true,    // model truncates internally if needed
         })
         const items: Array<{ score: number }> = Array.isArray(result) ? result : [result]
         return items[0]?.score ?? 0

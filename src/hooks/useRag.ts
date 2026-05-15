@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import type { ScannedDocument } from '@/types/document'
+import type { ScannedDocument, DocumentChunk } from '@/types/document'
 import { getExtractor, embed, cosineSimilarity, isEmbedderLoaded } from '@/services/embeddingService'
 import { getReranker, rerankPassages, isRerankerLoaded } from '@/services/rerankService'
 import { checkWebGpu, loadLlmModel, streamGenerate, isLlmLoaded } from '@/services/llmService'
@@ -27,8 +27,6 @@ interface ResponsePreset {
   hint: string
 }
 
-// Base presets; charsPerSource for 'detailed' is scaled up by getPreset() when
-// the selected model has a large context window (> 65 K tokens).
 const RESPONSE_PRESETS: Record<ResponseLength, ResponsePreset> = {
   concise:  { maxTokens: 256,  charsPerSource: 800,  topK: 3, hint: 'Be brief — one or two sentences maximum.' },
   normal:   { maxTokens: 512,  charsPerSource: 1500, topK: 5, hint: '' },
@@ -37,7 +35,6 @@ const RESPONSE_PRESETS: Record<ResponseLength, ResponsePreset> = {
 
 function getPreset(length: ResponseLength, contextWindow: number): ResponsePreset {
   const base = RESPONSE_PRESETS[length]
-  // For large-context models (128 K), double the source budget in detailed mode.
   if (length === 'detailed' && contextWindow > 65536) {
     return { ...base, charsPerSource: base.charsPerSource * 2 }
   }
@@ -48,14 +45,15 @@ function getPreset(length: ResponseLength, contextWindow: number): ResponsePrese
 
 function buildSystemPrompt(
   sources: ScannedDocument[],
+  excerpts: Map<string, string>,
   reranked: boolean,
   preset: ResponsePreset,
 ): string {
   const ctx = sources
-    .map(
-      (d, i) =>
-        `=== SOURCE [${i + 1}]: "${d.title}" ===\n${d.rawText.slice(0, preset.charsPerSource).trimEnd()}\n=== END [${i + 1}] ===`,
-    )
+    .map((d, i) => {
+      const text = excerpts.get(d.id) ?? d.rawText.slice(0, preset.charsPerSource)
+      return `=== SOURCE [${i + 1}]: "${d.title}" ===\n${text.trimEnd()}\n=== END [${i + 1}] ===`
+    })
     .join('\n\n')
 
   const lengthRule = preset.hint
@@ -83,9 +81,9 @@ ${ctx}
 
 export function useRag() {
   // Embedding model
-  const [embedStatus, setEmbedStatus]   = useState<ModelStatus>('idle')
+  const [embedStatus, setEmbedStatus]     = useState<ModelStatus>('idle')
   const [embedProgress, setEmbedProgress] = useState(0)
-  const [embedError, setEmbedError]     = useState<string | null>(null)
+  const [embedError, setEmbedError]       = useState<string | null>(null)
 
   // Cross-encoder reranker
   const [rerankerStatus, setRerankerStatus]     = useState<ModelStatus>('idle')
@@ -93,26 +91,26 @@ export function useRag() {
   const [rerankerError, setRerankerError]       = useState<string | null>(null)
 
   // LLM
-  const [llmStatus, setLlmStatus]           = useState<ModelStatus>('idle')
-  const [llmProgress, setLlmProgress]       = useState(0)
+  const [llmStatus, setLlmStatus]             = useState<ModelStatus>('idle')
+  const [llmProgress, setLlmProgress]         = useState(0)
   const [llmProgressText, setLlmProgressText] = useState('')
-  const [llmError, setLlmError]             = useState<string | null>(null)
-  const [selectedLlmId, setSelectedLlmId]   = useState(LLM_MODELS[0].id)
+  const [llmError, setLlmError]               = useState<string | null>(null)
+  // Default to Llama 3.2 1B — better instruction-following than Qwen 0.5B
+  const [selectedLlmId, setSelectedLlmId]     = useState(LLM_MODELS[1].id)
   const [webGpuAvailable, setWebGpuAvailable] = useState<boolean | null>(null)
 
   // Response settings
   const [responseLength, setResponseLength] = useState<ResponseLength>('normal')
 
   // Chat
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [streaming, setStreaming] = useState(false)
-  const [queryError, setQueryError] = useState<string | null>(null)
+  const [messages, setMessages]       = useState<ChatMessage[]>([])
+  const [streaming, setStreaming]     = useState(false)
+  const [queryError, setQueryError]   = useState<string | null>(null)
   const [lastSources, setLastSources] = useState<ScannedDocument[]>([])
 
   const messagesRef = useRef<ChatMessage[]>([])
   const abortRef    = useRef(false)
 
-  // Sync ref with state for stale-closure-free access inside async functions
   const updateMessages = useCallback((updater: (prev: ChatMessage[]) => ChatMessage[]) => {
     setMessages((prev) => {
       const next = updater(prev)
@@ -167,7 +165,6 @@ export function useRag() {
   const handleSelectLlm = useCallback((id: string) => {
     if (id === selectedLlmId) return
     setSelectedLlmId(id)
-    // Only reset if it's not already loaded with this model
     if (!isLlmLoaded(id)) {
       setLlmStatus('idle')
       setLlmProgress(0)
@@ -177,32 +174,44 @@ export function useRag() {
   }, [selectedLlmId])
 
   // ── Retrieval pipeline ──────────────────────────────────────────────────
-  // Returns up to topK best documents for a query using:
-  //   1. BM25 keyword search (always)
-  //   2. Semantic search via bi-encoder (if embedding model loaded + docs indexed)
-  //   3. RRF fusion
-  //   4. Cross-encoder reranking (if reranker loaded)
+  // Operates at chunk level for precise retrieval, then groups back to documents.
+  //
+  // Pipeline:
+  //   1. BM25 over chunk texts (Unicode-aware tokenizer)
+  //   2. Semantic search over chunk embeddings (if embedder ready)
+  //   3. RRF fusion of both rankings
+  //   4. Cross-encoder reranking of top chunks (if reranker ready)
+  //   5. Group top chunks by document, build per-doc excerpt strings
 
   const retrieve = useCallback(async (
     query: string,
     documents: ScannedDocument[],
+    chunks: DocumentChunk[],
     topK: number,
-  ): Promise<{ sources: ScannedDocument[]; reranked: boolean }> => {
-    if (documents.length === 0) return { sources: [], reranked: false }
+  ): Promise<{ sources: ScannedDocument[]; excerpts: Map<string, string>; reranked: boolean }> => {
+    const empty = { sources: [], excerpts: new Map<string, string>(), reranked: false }
 
-    // 1. BM25
-    const bm25 = new BM25Index(documents.map((d) => d.rawText))
+    // Fall back to document-level BM25 if no chunks are indexed yet
+    if (chunks.length === 0) {
+      if (documents.length === 0) return empty
+      const bm25 = new BM25Index(documents.map((d) => d.rawText))
+      const results = bm25.search(query, topK)
+      const sources = results.map(({ idx }) => documents[idx]).filter(Boolean)
+      const excerpts = new Map(sources.map((d) => [d.id, d.rawText.slice(0, 800)]))
+      return { sources, excerpts, reranked: false }
+    }
+
+    // 1. BM25 over chunks
+    const bm25 = new BM25Index(chunks.map((c) => c.text))
     const bm25Results = bm25.search(query, 20)
 
-    // 2. Semantic (only if embedder already loaded and documents are indexed)
-    const indexed = documents.filter((d) => d.embedding !== null)
+    // 2. Semantic search over chunk embeddings
     let semanticResults: Array<{ idx: number; score: number }> = []
-
-    if (isEmbedderLoaded() && indexed.length > 0) {
+    if (isEmbedderLoaded() && chunks.length > 0) {
       try {
         const qVec = await embed(query)
-        semanticResults = indexed
-          .map((d) => ({ idx: documents.indexOf(d), score: cosineSimilarity(qVec, d.embedding!) }))
+        semanticResults = chunks
+          .map((c, i) => ({ idx: i, score: cosineSimilarity(qVec, c.embedding) }))
           .sort((a, b) => b.score - a.score)
           .slice(0, 20)
       } catch { /* embedder not ready yet — degrade gracefully */ }
@@ -210,30 +219,52 @@ export function useRag() {
 
     // 3. RRF fusion
     const rankings = [bm25Results, ...(semanticResults.length > 0 ? [semanticResults] : [])]
-    const fused    = reciprocalRankFusion(rankings).slice(0, 10)
-    const candidates = fused.map(({ idx }) => documents[idx]).filter(Boolean)
+    const fused = reciprocalRankFusion(rankings).slice(0, 15)
+    let topChunks = fused.map(({ idx }) => chunks[idx]).filter(Boolean)
 
-    if (candidates.length === 0) return { sources: [], reranked: false }
+    if (topChunks.length === 0) return empty
 
-    // 4. Cross-encoder reranking (if loaded, graceful fallback)
+    // 4. Cross-encoder reranking over chunk texts (chunks fit in 512 chars without truncation)
+    let reranked = false
     if (isRerankerLoaded()) {
       try {
-        const scores = await rerankPassages(query, candidates.map((d) => d.rawText))
+        const scores = await rerankPassages(query, topChunks.map((c) => c.text))
         if (scores.some((s) => s > 0)) {
-          const reranked = candidates
-            .map((d, i) => ({ d, score: scores[i] }))
+          topChunks = topChunks
+            .map((c, i) => ({ c, score: scores[i] }))
             .sort((a, b) => b.score - a.score)
-            .slice(0, topK)
-            .map((x) => x.d)
-          return { sources: reranked, reranked: true }
+            .map((x) => x.c)
+          reranked = true
         }
       } catch { /* reranker failed — fall through */ }
     }
 
-    return { sources: candidates.slice(0, topK), reranked: false }
+    // 5. Group by document: keep up to 2 best chunks per doc, preserve original order
+    const chunksByDoc = new Map<string, DocumentChunk[]>()
+    for (const chunk of topChunks.slice(0, topK * 3)) {
+      const arr = chunksByDoc.get(chunk.docId) ?? []
+      if (arr.length < 2) {
+        arr.push(chunk)
+        chunksByDoc.set(chunk.docId, arr)
+      }
+      if (chunksByDoc.size >= topK) break
+    }
+
+    // Build excerpt strings: chunks sorted by position, joined with ellipsis
+    const excerpts = new Map<string, string>()
+    for (const [docId, docChunks] of chunksByDoc) {
+      const sorted = docChunks.sort((a, b) => a.chunkIndex - b.chunkIndex)
+      excerpts.set(docId, sorted.map((c) => c.text).join(' … '))
+    }
+
+    const sources = [...chunksByDoc.keys()]
+      .map((docId) => documents.find((d) => d.id === docId))
+      .filter((d): d is ScannedDocument => d !== undefined)
+
+    return { sources, excerpts, reranked }
   }, [])
 
-  // ── Embedding helper (called from App.tsx to update doc in IndexedDB) ──
+  // ── Embedding helper (kept for backward compat — indexDocument() is preferred) ──
 
   const embedDoc = useCallback(async (doc: ScannedDocument): Promise<number[]> => {
     return embed(doc.rawText)
@@ -241,39 +272,47 @@ export function useRag() {
 
   // ── Chat ────────────────────────────────────────────────────────────────
 
-  const chat = useCallback(async (query: string, documents: ScannedDocument[]) => {
+  const chat = useCallback(async (
+    query: string,
+    documents: ScannedDocument[],
+    chunks: DocumentChunk[],
+  ) => {
     if (streaming) return
     setQueryError(null)
 
-    const selectedModel = LLM_MODELS.find((m) => m.id === selectedLlmId) ?? LLM_MODELS[0]
+    const selectedModel = LLM_MODELS.find((m) => m.id === selectedLlmId) ?? LLM_MODELS[1]
     const preset = getPreset(responseLength, selectedModel.contextWindow)
 
-    // Add user message
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: query }
     updateMessages((prev) => [...prev, userMsg])
 
-    // Retrieve sources
     let sources: ScannedDocument[] = []
+    let excerpts = new Map<string, string>()
     let reranked = false
     try {
-      const result = await retrieve(query, documents, preset.topK)
-      sources = result.sources
+      const result = await retrieve(query, documents, chunks, preset.topK)
+      sources  = result.sources
+      excerpts = result.excerpts
       reranked = result.reranked
       setLastSources(sources)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      setQueryError(msg)
+      setQueryError(e instanceof Error ? e.message : String(e))
       updateMessages((prev) => prev.slice(0, -1))
       return
     }
 
     const assistantId = crypto.randomUUID()
 
-    // If LLM not loaded — show retrieved sources as the answer
+    // Without LLM: show relevant excerpts directly as citations
     if (llmStatus !== 'ready') {
       const content = sources.length > 0
-        ? `Found ${sources.length} relevant document${sources.length !== 1 ? 's' : ''}. Load a language model to generate an answer.`
-        : 'No relevant documents found for your query.'
+        ? sources
+            .map((d, i) => {
+              const excerpt = excerpts.get(d.id) ?? d.rawText.slice(0, 300)
+              return `**[${i + 1}] ${d.title}**\n> ${excerpt.slice(0, 300)}`
+            })
+            .join('\n\n')
+        : 'No se encontraron documentos relevantes para tu consulta.'
       updateMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content, sources }])
       return
     }
@@ -286,8 +325,7 @@ export function useRag() {
 
     let accumulated = ''
     try {
-      const systemPrompt = buildSystemPrompt(sources, reranked, preset)
-      // Build history from ref to avoid stale closure
+      const systemPrompt = buildSystemPrompt(sources, excerpts, reranked, preset)
       const history = messagesRef.current
         .filter((m) => m.id !== assistantId)
         .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
@@ -299,7 +337,6 @@ export function useRag() {
           prev.map((m) => m.id === assistantId ? { ...m, content: accumulated } : m),
         )
       }
-      // Sync ref with final state
       messagesRef.current = messagesRef.current.map((m) =>
         m.id === assistantId ? { ...m, content: accumulated } : m,
       )

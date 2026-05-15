@@ -4,7 +4,7 @@ const B  = 0.75
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')  // Unicode-aware: preserves á, é, ñ, ü, etc.
     .split(/\s+/)
     .filter((t) => t.length > 1)
 }
