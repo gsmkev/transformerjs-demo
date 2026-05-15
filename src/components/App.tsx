@@ -8,6 +8,7 @@ import { useImageLoader } from '@/hooks/useImageLoader'
 import { useOcr } from '@/hooks/useOcr'
 import { useDocuments } from '@/hooks/useDocuments'
 import { useRag } from '@/hooks/useRag'
+import { useBatchOcr } from '@/hooks/useBatchOcr'
 import { classifyDocument } from '@/services/categoryService'
 import { indexDocument, removeDocumentChunks } from '@/services/chunkService'
 import TabBar from '@/components/tabs/TabBar'
@@ -36,6 +37,11 @@ export default function App() {
   const imageLoader = useImageLoader()
   const ocr = useOcr({ workersRef, selectedId })
   const { documents, chunks, loading: docsLoading, create, update, remove, refresh, refreshChunks } = useDocuments()
+  const batchOcr = useBatchOcr({
+    selectedEngineId: selectedId,
+    runOcr: (file: File) => ocr.executeAndReturn(file),
+    create,
+  })
   const rag = useRag()
 
   const handleTabChange = useCallback((t: Tab) => {
@@ -236,6 +242,8 @@ export default function App() {
               onSave={handleSave}
               saving={saving}
               cameraInputRef={dropzoneCameraRef}
+              batchOcr={batchOcr}
+              onNavigateToLibrary={() => handleTabChange('documents')}
             />
           </div>
         </div>

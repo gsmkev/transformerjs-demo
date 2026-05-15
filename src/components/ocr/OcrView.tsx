@@ -7,6 +7,8 @@ import PageStrip from './PageStrip'
 import ResultPanel from './ResultPanel'
 import Button from '@/components/ui/Button'
 import type { useImageLoader } from '@/hooks/useImageLoader'
+import type { useBatchOcr } from '@/hooks/useBatchOcr'
+import BatchQueue from './BatchQueue'
 
 interface Props {
   selectedId: string
@@ -20,15 +22,18 @@ interface Props {
   onSave: () => Promise<void>
   saving: boolean
   cameraInputRef?: RefObject<HTMLInputElement>
+  batchOcr: ReturnType<typeof useBatchOcr>
+  onNavigateToLibrary: () => void
 }
 
 export default function OcrView({
   selectedId, engineStates, onSelectEngine, imageLoader,
   ocrResult, ocrError, ocrRunning, onRunOcr, onSave, saving,
-  cameraInputRef,
+  cameraInputRef, batchOcr, onNavigateToLibrary,
 }: Props) {
   const { file, dataUrl, pages, isDragOver, fileTypeError, loadFile, addPage, removePage, clearImage, dragHandlers, fileInputRef } = imageLoader
   const engineReady = engineStates[selectedId]?.status === 'ready'
+  const isBatchMode = batchOcr.queue.length >= 2
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 animate-fade-in">
@@ -46,30 +51,63 @@ export default function OcrView({
             </div>
           )}
 
-          {pages.length >= 1 ? (
+          {isBatchMode ? (
             <>
-              <PageStrip pages={pages} onAdd={addPage} onRemove={removePage} cameraInputRef={cameraInputRef} />
-              {dataUrl && <ImagePreview dataUrl={dataUrl} onClear={clearImage} />}
+              <BatchQueue
+                queue={batchOcr.queue}
+                running={batchOcr.running}
+                progress={batchOcr.progress}
+                onRemove={batchOcr.removeItem}
+                onCancel={batchOcr.cancel}
+                onClear={batchOcr.clearQueue}
+                onNavigateToLibrary={onNavigateToLibrary}
+              />
+              <Button
+                onClick={batchOcr.startBatch}
+                disabled={!engineReady || batchOcr.running || batchOcr.queue.filter((i) => i.status === 'pending').length === 0}
+                spinning={batchOcr.running}
+                className="w-full py-2.5"
+              >
+                {batchOcr.running ? 'Procesando…' : 'Ejecutar OCR en lote'}
+              </Button>
             </>
           ) : (
-            <Dropzone
-              isDragOver={isDragOver}
-              fileTypeError={fileTypeError}
-              onFile={addPage}
-              dragHandlers={dragHandlers}
-              fileInputRef={fileInputRef}
-              cameraInputRef={cameraInputRef}
-            />
-          )}
-
-          <Button onClick={onRunOcr} disabled={pages.length === 0 || !engineReady || ocrRunning} spinning={ocrRunning} className="w-full py-2.5">
-            {ocrRunning ? 'Procesando…' : 'Ejecutar OCR'}
-          </Button>
-
-          {ocrResult && (
-            <Button variant="ghost" onClick={onSave} disabled={saving} spinning={saving} className="w-full py-2.5">
-              {saving ? 'Guardando…' : 'Guardar en biblioteca'}
-            </Button>
+            <>
+              {pages.length >= 1 ? (
+                <>
+                  <PageStrip pages={pages} onAdd={addPage} onRemove={removePage} cameraInputRef={cameraInputRef} />
+                  {dataUrl && <ImagePreview dataUrl={dataUrl} onClear={clearImage} />}
+                </>
+              ) : (
+                <Dropzone
+                  isDragOver={isDragOver}
+                  fileTypeError={fileTypeError}
+                  onFile={(f) => {
+                    batchOcr.addFiles([f])
+                    addPage(f)
+                  }}
+                  dragHandlers={{
+                    ...dragHandlers,
+                    onDrop: (e) => {
+                      e.preventDefault()
+                      const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'))
+                      batchOcr.addFiles(files)
+                      dragHandlers.onDrop(e)
+                    },
+                  }}
+                  fileInputRef={fileInputRef}
+                  cameraInputRef={cameraInputRef}
+                />
+              )}
+              <Button onClick={onRunOcr} disabled={pages.length === 0 || !engineReady || ocrRunning} spinning={ocrRunning} className="w-full py-2.5">
+                {ocrRunning ? 'Procesando…' : 'Ejecutar OCR'}
+              </Button>
+              {ocrResult && (
+                <Button variant="ghost" onClick={onSave} disabled={saving} spinning={saving} className="w-full py-2.5">
+                  {saving ? 'Guardando…' : 'Guardar en biblioteca'}
+                </Button>
+              )}
+            </>
           )}
         </div>
 

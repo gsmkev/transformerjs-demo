@@ -35,10 +35,19 @@ export function useOcr({ workersRef, selectedId }: UseOcrOptions) {
     }
   }, [workersRef, selectedId])
 
+  const executeAndReturn = useCallback(async (file: File): Promise<{ text: string; confidence: number | null }> => {
+    const worker = workersRef.current?.get(selectedId)
+    if (!worker) {
+      throw new Error('Engine not loaded — load a model in the Models tab first.')
+    }
+    const ocr = await runOcr(worker, file)
+    return { text: ocr.text, confidence: ocr.confidence }
+  }, [workersRef, selectedId])
+
   const reset = useCallback(() => {
     setResult(null)
     setError(null)
   }, [])
 
-  return { result, error, running, execute, reset } as const
+  return { result, error, running, execute, executeAndReturn, reset } as const
 }
