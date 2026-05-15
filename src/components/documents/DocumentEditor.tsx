@@ -106,9 +106,9 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, onUpdate, 
     if (trimmed !== doc.title) await onUpdate(doc.id, { title: trimmed })
   }
 
-  const handleTagsChange = async (newTags: string[]) => {
+  const handleTagsChange = (newTags: string[]) => {
     setTags(newTags)
-    await onUpdate(doc.id, { tags: newTags })
+    onUpdate(doc.id, { tags: newTags }).catch((err) => console.error('Tag save failed:', err))
   }
 
   const handleDelete = async () => {

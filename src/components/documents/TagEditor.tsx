@@ -70,7 +70,7 @@ export default function TagEditor({ tags, allTags, onChange }: Props) {
             <button
               key={s}
               type="button"
-              onClick={() => { onChange([...tags, s]); setInput('') }}
+              onClick={() => { addTag(s); setInput('') }}
               className="px-2 py-0.5 rounded-full text-xs border border-white/10 text-dim hover:text-ink hover:bg-white/5 transition-colors"
             >
               {s}
