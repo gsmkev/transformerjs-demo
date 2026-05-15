@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import type { ScannedDocument, DocumentChunk } from '@/types/document'
+import type { ScannedDocument, DocumentChunk, ExportHistoryEntry } from '@/types/document'
 import {
   saveDocument,
   getAllDocuments,
@@ -56,5 +56,17 @@ export function useDocuments() {
     setDocuments((prev) => prev.filter((d) => d.id !== id))
   }, [])
 
-  return { documents, chunks, loading, create, update, remove, refresh, refreshChunks } as const
+  const addExportEntry = useCallback(
+    async (id: string, format: ExportHistoryEntry['format']) => {
+      const doc = documents.find((d) => d.id === id)
+      if (!doc) return
+      const entry: ExportHistoryEntry = { format, exportedAt: Date.now() }
+      await update(id, {
+        exportHistory: [...(doc.exportHistory ?? []), entry],
+      })
+    },
+    [documents, update],
+  )
+
+  return { documents, chunks, loading, create, update, remove, refresh, refreshChunks, addExportEntry } as const
 }

@@ -1,3 +1,8 @@
+export interface ExportHistoryEntry {
+  format: 'pdf' | 'txt' | 'json' | 'share' | 'copy' | 'docx' | 'odt' | 'ods'
+  exportedAt: number  // unix ms
+}
+
 export interface ScannedDocument {
   id: string
   title: string
@@ -15,6 +20,7 @@ export interface ScannedDocument {
   extractedData?: Record<string, string> | null
   expiresAt?: number | null          // Unix ms — optional expiry date
   summary?: string | null            // LLM-generated summary
+  exportHistory?: ExportHistoryEntry[]
 }
 
 export interface ExtractionField {
