@@ -8,6 +8,7 @@ import { useImageLoader } from '@/hooks/useImageLoader'
 import { useOcr } from '@/hooks/useOcr'
 import { useDocuments } from '@/hooks/useDocuments'
 import { useRag } from '@/hooks/useRag'
+import { useChatHistory } from '@/hooks/useChatHistory'
 import { useBatchOcr } from '@/hooks/useBatchOcr'
 import { classifyDocument } from '@/services/categoryService'
 import { indexDocument, removeDocumentChunks } from '@/services/chunkService'
@@ -45,7 +46,19 @@ export default function App() {
     runOcr: (file: File) => ocr.executeAndReturn(file),
     create,
   })
-  const rag = useRag()
+  const chatLimit = (() => {
+    if (typeof window === 'undefined') return 25
+    try {
+      const stored = localStorage.getItem('papeleo_chat_limit')
+      if (stored === 'Infinity') return Infinity
+      const n = Number(stored)
+      return isNaN(n) ? 25 : n
+    } catch { return 25 }
+  })()
+
+  const chatHistory = useChatHistory({ limit: chatLimit })
+
+  const rag = useRag({ onAfterChat: chatHistory.saveHistory })
 
   const handleTabChange = useCallback((t: Tab) => {
     setTab(t)
@@ -288,7 +301,7 @@ export default function App() {
         </div>
         <div id="panel-rag" role="tabpanel" aria-hidden={tab !== 'rag'} className={tab !== 'rag' ? 'hidden' : ''}>
           <div key={tab === 'rag' ? activeKey : 0} className={tab === 'rag' ? 'tab-panel-enter' : ''}>
-            <RagView documents={documents} chunks={chunks} rag={rag} onEmbedDoc={handleEmbedDoc} onEmbedAll={handleEmbedAll} onNavigateToModels={() => handleTabChange('engines')} />
+            <RagView documents={documents} chunks={chunks} rag={rag} chatHistory={chatHistory} onEmbedDoc={handleEmbedDoc} onEmbedAll={handleEmbedAll} onNavigateToModels={() => handleTabChange('engines')} />
           </div>
         </div>
       </main>

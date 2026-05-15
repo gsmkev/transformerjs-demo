@@ -72,7 +72,7 @@ ${ctx}
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useRag() {
+export function useRag(config?: { onAfterChat?: (messages: ChatMessage[]) => void }) {
   // Embedding model
   const [embedStatus, setEmbedStatus]     = useState<ModelStatus>('idle')
   const [embedProgress, setEmbedProgress] = useState(0)
@@ -306,7 +306,11 @@ export function useRag() {
             })
             .join('\n\n')
         : 'No se encontraron documentos relevantes para tu consulta.'
-      updateMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content, sources }])
+      const noLlmMsg: ChatMessage = { id: assistantId, role: 'assistant', content, sources }
+      const finalMsgsNoLlm = [...messagesRef.current, noLlmMsg]
+      setMessages(finalMsgsNoLlm)
+      messagesRef.current = finalMsgsNoLlm
+      config?.onAfterChat?.(finalMsgsNoLlm)
       return
     }
 
@@ -333,6 +337,7 @@ export function useRag() {
       messagesRef.current = messagesRef.current.map((m) =>
         m.id === assistantId ? { ...m, content: accumulated } : m,
       )
+      config?.onAfterChat?.(messagesRef.current)
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       updateMessages((prev) =>
@@ -353,6 +358,11 @@ export function useRag() {
     setQueryError(null)
   }, [])
 
+  const loadMessages = useCallback((msgs: ChatMessage[]) => {
+    setMessages(msgs)
+    messagesRef.current = msgs
+  }, [])
+
   return {
     embedStatus, embedProgress, embedError, loadEmbedModel,
     rerankerStatus, rerankerProgress, rerankerError, loadReranker,
@@ -361,6 +371,6 @@ export function useRag() {
     webGpuAvailable, loadLlm,
     responseLength, setResponseLength,
     messages, streaming, queryError, lastSources,
-    embedDoc, chat, stopStreaming, clearChat,
+    embedDoc, chat, stopStreaming, clearChat, loadMessages,
   } as const
 }

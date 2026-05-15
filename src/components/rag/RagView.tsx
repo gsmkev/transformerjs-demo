@@ -3,22 +3,26 @@
 import { useState, useRef, useEffect, FormEvent } from 'react'
 import type { ScannedDocument, DocumentChunk } from '@/types/document'
 import type { useRag } from '@/hooks/useRag'
+import type { useChatHistory } from '@/hooks/useChatHistory'
 import { LLM_MODELS } from '@/config/llmModels'
 import Button from '@/components/ui/Button'
 import ChatMessage from './ChatMessage'
+import ChatHistorySidebar from './ChatHistorySidebar'
 
 interface Props {
   documents: ScannedDocument[]
   chunks: DocumentChunk[]
   rag: ReturnType<typeof useRag>
+  chatHistory: ReturnType<typeof useChatHistory>
   onEmbedDoc: (doc: ScannedDocument) => Promise<void>
   onEmbedAll: () => Promise<void>
   onNavigateToModels: () => void
 }
 
-export default function RagView({ documents, chunks, rag, onEmbedDoc: _onEmbedDoc, onEmbedAll, onNavigateToModels }: Props) {
+export default function RagView({ documents, chunks, rag, chatHistory, onEmbedDoc: _onEmbedDoc, onEmbedAll, onNavigateToModels }: Props) {
   const [input, setInput] = useState('')
   const [indexing, setIndexing] = useState(false)
+  const [historySidebarOpen, setHistorySidebarOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const embeddedCount = documents.filter((d) => d.embedding !== null).length
