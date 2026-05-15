@@ -87,6 +87,7 @@ export async function importBackup(file: File): Promise<ImportResult> {
     try {
       const json = await zipFile.async('string')
       const doc = JSON.parse(json) as ScannedDocument
+      if (!doc?.id) throw new Error('missing id field')
       await saveDocument({ ...doc, imageDataUrl: '' })
       result.docsImported++
     } catch (err) {
@@ -106,6 +107,8 @@ export async function importBackup(file: File): Promise<ImportResult> {
       if (saveChatHistory) {
         await saveChatHistory(history)
         result.chatsImported++
+      } else {
+        result.errors.push(`${path}: chatHistoryStorage not available`)
       }
     } catch (err) {
       result.errors.push(`${path}: ${String(err)}`)
