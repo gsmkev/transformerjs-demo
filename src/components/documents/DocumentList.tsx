@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { ScannedDocument } from '@/types/document'
 import DocumentCard from './DocumentCard'
+import FilterDropdown, { type FilterState } from './FilterDropdown'
 import Button from '@/components/ui/Button'
 
 interface Props {
@@ -11,17 +12,6 @@ interface Props {
   onOpen: (id: string) => void
   onDelete: (id: string) => void
   onScanClick?: () => void
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  factura: '🧾 Factura',
-  contrato: '📝 Contrato',
-  médico: '🏥 Médico',
-  identidad: '🪪 Identidad',
-  seguro: '🛡️ Seguro',
-  bancario: '🏦 Bancario',
-  hogar: '🏠 Hogar',
-  otro: '📄 Otro',
 }
 
 const shimmerCls = 'bg-gradient-to-r from-white/4 via-white/8 to-white/4 bg-[length:200%_100%] animate-shimmer rounded-lg'
@@ -40,7 +30,8 @@ function SkeletonCard() {
 }
 
 export default function DocumentList({ documents, loading, onOpen, onDelete, onScanClick }: Props) {
-  const [filter, setFilter] = useState<string>('all')
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState<FilterState>({ category: null, tags: [] })
 
   if (loading) {
     return (
@@ -65,57 +56,86 @@ export default function DocumentList({ documents, loading, onOpen, onDelete, onS
           </p>
         </div>
         {onScanClick && (
-          <Button onClick={onScanClick} className="px-5">
-            Ir a OCR
-          </Button>
+          <Button onClick={onScanClick} className="px-5">Ir a OCR</Button>
         )}
       </div>
     )
   }
 
   const categories = Array.from(new Set(documents.map((d) => d.category).filter(Boolean))) as string[]
-  const filtered = filter === 'all' ? documents : documents.filter((d) => d.category === filter)
+  const availableTags = Array.from(new Set(documents.flatMap((d) => d.tags ?? []))).sort()
+
+  const q = search.trim().toLowerCase()
+
+  const filtered = documents.filter((doc) => {
+    if (q) {
+      const inTitle = doc.title.toLowerCase().includes(q)
+      const inCat = (doc.category ?? '').toLowerCase().includes(q)
+      const inTags = (doc.tags ?? []).some((t) => t.includes(q))
+      if (!inTitle && !inCat && !inTags) return false
+    }
+    if (filter.category && doc.category !== filter.category) return false
+    if (filter.tags.length > 0) {
+      const docTags = doc.tags ?? []
+      if (!filter.tags.some((t) => docTags.includes(t))) return false
+    }
+    return true
+  })
+
+  const activeFilterCount = (filter.category ? 1 : 0) + filter.tags.length
 
   return (
     <div className="p-4 sm:p-6 space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between gap-2">
-        <p className="section-label">{filtered.length} documento{filtered.length !== 1 ? 's' : ''}</p>
+      <div className="flex gap-2">
+        <div className="flex-1 relative">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 text-dim/60 pointer-events-none" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar documentos…"
+            className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-white/10 bg-surface/60 text-xs text-ink placeholder:text-dim/50 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+          />
+        </div>
+        {(categories.length > 0 || availableTags.length > 0) && (
+          <FilterDropdown
+            categories={categories}
+            availableTags={availableTags}
+            filter={filter}
+            onChange={setFilter}
+          />
+        )}
       </div>
 
-      {categories.length > 0 && (
-        <div className="flex gap-1.5 flex-wrap">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-all border ${
-              filter === 'all'
-                ? 'bg-accent/15 border-accent/30 text-accent'
-                : 'border-white/10 text-dim hover:text-ink hover:bg-white/5'
-            }`}
-          >
-            Todos
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setFilter(cat)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-all border ${
-                filter === cat
-                  ? 'bg-accent/15 border-accent/30 text-accent'
-                  : 'border-white/10 text-dim hover:text-ink hover:bg-white/5'
-              }`}
-            >
-              {CATEGORY_LABELS[cat] ?? cat}
-            </button>
+      {activeFilterCount > 0 && (
+        <div className="flex flex-wrap gap-1.5 items-center">
+          {filter.category && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs">
+              {filter.category}
+              <button onClick={() => setFilter({ ...filter, category: null })} className="text-accent/60 hover:text-accent">✕</button>
+            </span>
+          )}
+          {filter.tags.map((t) => (
+            <span key={t} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs">
+              {t}
+              <button onClick={() => setFilter({ ...filter, tags: filter.tags.filter((x) => x !== t) })} className="text-accent/60 hover:text-accent">✕</button>
+            </span>
           ))}
+          <button onClick={() => setFilter({ category: null, tags: [] })} className="text-xs text-dim/60 hover:text-dim transition-colors">
+            Limpiar todo
+          </button>
         </div>
       )}
+
+      <p className="section-label">{filtered.length} documento{filtered.length !== 1 ? 's' : ''}</p>
 
       <div className="space-y-3">
         {filtered.map((doc) => (
           <DocumentCard key={doc.id} doc={doc} onOpen={() => onOpen(doc.id)} onDelete={() => onDelete(doc.id)} />
         ))}
         {filtered.length === 0 && (
-          <p className="text-xs text-dim text-center py-6">No hay documentos en esta categoría.</p>
+          <p className="text-xs text-dim text-center py-6">No hay documentos que coincidan con tu búsqueda.</p>
         )}
       </div>
     </div>
