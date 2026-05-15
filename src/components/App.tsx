@@ -10,6 +10,9 @@ import { useDocuments } from '@/hooks/useDocuments'
 import { useRag } from '@/hooks/useRag'
 import { useChatHistory } from '@/hooks/useChatHistory'
 import { useBatchOcr } from '@/hooks/useBatchOcr'
+import { findNearDuplicates } from '@/services/duplicateDetectionService'
+import type { DuplicateResult } from '@/services/duplicateDetectionService'
+import DuplicateWarning from '@/components/ui/DuplicateWarning'
 import { classifyDocument } from '@/services/categoryService'
 import { summarizeDocument } from '@/services/summaryService'
 import { indexDocument, removeDocumentChunks } from '@/services/chunkService'
@@ -32,6 +35,7 @@ export default function App() {
   const [activeKey, setActiveKey] = useState(0)
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [duplicateWarning, setDuplicateWarning] = useState<DuplicateResult[]>([])
   const [searchOpen, setSearchOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -89,12 +93,14 @@ export default function App() {
         confidence: ocr.result.confidence,
         category,
       })
+      const dupes = await findNearDuplicates(ocr.result.text, chunks, documents, doc.id)
+      if (dupes.length > 0) setDuplicateWarning(dupes)
       setSelectedDocId(doc.id)
       handleTabChange('documents')
     } finally {
       setSaving(false)
     }
-  }, [imageLoader.adjustedDataUrl, imageLoader.dataUrl, ocr.result, create, selectedId, handleTabChange])
+  }, [imageLoader.adjustedDataUrl, imageLoader.dataUrl, ocr.result, create, selectedId, handleTabChange, chunks, documents])
 
   const handleEmbedDoc = useCallback(
     async (doc: (typeof documents)[number]) => {
@@ -326,6 +332,14 @@ export default function App() {
             else window.location.reload()
           }}
           pinLock={pinLock}
+        />
+      )}
+
+      {duplicateWarning.length > 0 && (
+        <DuplicateWarning
+          duplicates={duplicateWarning}
+          onOpenDoc={(id) => { setSelectedDocId(id); handleTabChange('documents') }}
+          onDismiss={() => setDuplicateWarning([])}
         />
       )}
     </div>
