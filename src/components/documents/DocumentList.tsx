@@ -33,6 +33,7 @@ function SkeletonCard() {
 export default function DocumentList({ documents, loading, onOpen, onDelete, onScanClick }: Props) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FilterState>({ category: null, tags: [] })
+  const [showExpiringSoon, setShowExpiringSoon] = useState(false)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
@@ -82,6 +83,11 @@ export default function DocumentList({ documents, loading, onOpen, onDelete, onS
       const docTags = doc.tags ?? []
       if (!filter.tags.some((t) => docTags.includes(t))) return false
     }
+    if (showExpiringSoon) {
+      if (!doc.expiresAt) return false
+      const daysLeft = Math.ceil((doc.expiresAt - Date.now()) / (1000 * 60 * 60 * 24))
+      if (daysLeft > 30) return false
+    }
     return true
   })
 
@@ -108,6 +114,19 @@ export default function DocumentList({ documents, loading, onOpen, onDelete, onS
             filter={filter}
             onChange={setFilter}
           />
+        )}
+        {documents.some((d) => d.expiresAt) && (
+          <button
+            onClick={() => setShowExpiringSoon((v) => !v)}
+            className={`text-xs px-2.5 py-1.5 rounded-xl border transition-all ${
+              showExpiringSoon
+                ? 'bg-yellow-400/15 border-yellow-400/30 text-yellow-400'
+                : 'border-white/10 text-dim hover:text-ink hover:bg-white/5'
+            }`}
+            aria-pressed={showExpiringSoon}
+          >
+            ⏰ Próximos a caducar
+          </button>
         )}
       </div>
 
