@@ -20,6 +20,7 @@ import DashboardView from '@/components/dashboard/DashboardView'
 import InstallButton from '@/components/ui/InstallButton'
 import { useTheme } from '@/hooks/useTheme'
 import SearchOverlay from '@/components/search/SearchOverlay'
+import SettingsModal from '@/components/ui/SettingsModal'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('home')
@@ -27,13 +28,14 @@ export default function App() {
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const { theme, toggle } = useTheme()
   const { engineStates, workersRef, initEngine, retryEngine } = useEngineManager()
   const { selectedId, setSelectedId } = useSelectedEngine()
   const imageLoader = useImageLoader()
   const ocr = useOcr({ workersRef, selectedId })
-  const { documents, chunks, loading: docsLoading, create, update, remove, refreshChunks } = useDocuments()
+  const { documents, chunks, loading: docsLoading, create, update, remove, refresh, refreshChunks } = useDocuments()
   const rag = useRag()
 
   const handleTabChange = useCallback((t: Tab) => {
@@ -138,6 +140,16 @@ export default function App() {
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+          <button
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Ajustes"
+            className="p-2 rounded-lg hover:bg-white/5 transition-colors text-dim hover:text-ink flex-shrink-0"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
           </button>
           <button
@@ -257,6 +269,17 @@ export default function App() {
           documents={documents}
           onNavigate={handleSearchNavigate}
           onClose={() => setSearchOpen(false)}
+        />
+      )}
+
+      {settingsOpen && (
+        <SettingsModal
+          documents={documents}
+          onClose={() => setSettingsOpen(false)}
+          onImportComplete={() => {
+            if (typeof refresh === 'function') refresh()
+            else window.location.reload()
+          }}
         />
       )}
     </div>
