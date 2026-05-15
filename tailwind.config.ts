@@ -12,21 +12,21 @@ const config: Config = {
         rim:      'var(--color-rim)',
 
         accent: {
-          DEFAULT: 'var(--color-accent)',
+          DEFAULT: 'rgb(var(--color-accent-rgb) / <alpha-value>)',
           light:   'var(--color-accent-light)',
           dark:    'var(--color-accent-dark)',
           glow:    'var(--color-accent-glow)',
           muted:   'var(--color-accent-muted)',
         },
 
-        ink:   'var(--color-ink)',
-        dim:   'var(--color-dim)',
+        ink:   'rgb(var(--color-ink-rgb) / <alpha-value>)',
+        dim:   'rgb(var(--color-dim-rgb) / <alpha-value>)',
         muted: 'var(--color-muted)',
 
-        ok:   'var(--color-ok)',
-        err:  'var(--color-err)',
-        warn: 'var(--color-warn)',
-        info: 'var(--color-info)',
+        ok:   'rgb(var(--color-ok-rgb) / <alpha-value>)',
+        err:  'rgb(var(--color-err-rgb) / <alpha-value>)',
+        warn: 'rgb(var(--color-warn-rgb) / <alpha-value>)',
+        info: 'rgb(var(--color-info-rgb) / <alpha-value>)',
 
         glass: {
           bg:     'var(--glass-bg)',
