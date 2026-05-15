@@ -13,6 +13,8 @@ export interface ScannedDocument {
   tags?: string[]             // user-defined labels, undefined = []
   extractionSchema?: ExtractionField[] | null
   extractedData?: Record<string, string> | null
+  expiresAt?: number | null          // Unix ms — optional expiry date
+  summary?: string | null            // LLM-generated summary
 }
 
 export interface ExtractionField {
