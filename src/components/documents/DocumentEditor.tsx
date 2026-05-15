@@ -7,6 +7,7 @@ import type { ScannedDocument } from '@/types/document'
 import Button from '@/components/ui/Button'
 import Toast from '@/components/ui/Toast'
 import { shareDocument } from '@/services/exportService'
+import ExportMenu from '@/components/ui/ExportMenu'
 import PdfExportModal from './PdfExportModal'
 import PrintArea from './PrintArea'
 import TagEditor from './TagEditor'
@@ -169,6 +170,7 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, onUpdate, 
         <Button variant="ghost" onClick={() => setShowPdfModal(true)} className="py-1 px-2.5 text-xs flex-shrink-0">
           PDF
         </Button>
+        <ExportMenu doc={doc} />
         <Button variant="ghost" onClick={handleDelete} className="py-1 px-2.5 text-xs flex-shrink-0 text-err/80 hover:text-err hover:bg-err/10 hover:border-err/20">
           Eliminar
         </Button>
