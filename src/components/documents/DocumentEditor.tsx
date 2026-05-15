@@ -113,6 +113,15 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
 
   useEffect(() => () => clearTimeout(saveTimer.current), [])
 
+  useEffect(() => {
+    setTitle(doc.title)
+    setTags(doc.tags ?? [])
+    setLocalSchema(doc.extractionSchema ?? [])
+    setLocalData(doc.extractedData ?? {})
+    setEditingSchema(false)
+    setExtractionError(null)
+  }, [doc.id])
+
   const handleTitleBlur = async () => {
     const trimmed = title.trim() || 'Untitled'
     if (trimmed !== doc.title) await onUpdate(doc.id, { title: trimmed })
@@ -165,9 +174,9 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
     }
   }
 
-  const handleDataChange = async (data: Record<string, string>) => {
+  const handleDataChange = (data: Record<string, string>) => {
     setLocalData(data)
-    await onUpdate(doc.id, { extractedData: data })
+    onUpdate(doc.id, { extractedData: data }).catch((err) => console.error('Extraction data save failed:', err))
   }
 
   const saveStatusDisplay: Record<SaveStatus, { label: string; cls: string }> = {
