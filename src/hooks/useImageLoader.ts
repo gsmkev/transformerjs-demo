@@ -48,6 +48,7 @@ export function useImageLoader() {
   const [pages, setPages] = useState<string[]>([])
   const [file, setFile] = useState<File | null>(null)
   const [dataUrl, setDataUrl] = useState<string | null>(null)
+  const [adjustedDataUrl, setAdjustedDataUrl] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [fileTypeError, setFileTypeError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -55,12 +56,13 @@ export function useImageLoader() {
   useEffect(() => {
     if (pages.length === 0) {
       setDataUrl(null)
+      setAdjustedDataUrl(null)
       return
     }
     let cancelled = false
     concatenatePages(pages)
-      .then((url) => { if (!cancelled) setDataUrl(url) })
-      .catch(() => { if (!cancelled) setDataUrl(null) })
+      .then((url) => { if (!cancelled) { setDataUrl(url); setAdjustedDataUrl(null) } })
+      .catch(() => { if (!cancelled) { setDataUrl(null); setAdjustedDataUrl(null) } })
     return () => { cancelled = true }
   }, [pages])
 
@@ -92,6 +94,7 @@ export function useImageLoader() {
     setPages([])
     setFile(null)
     setDataUrl(null)
+    setAdjustedDataUrl(null)
     setFileTypeError(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }, [])
@@ -107,5 +110,5 @@ export function useImageLoader() {
     },
   }
 
-  return { file, dataUrl, pages, isDragOver, fileTypeError, loadFile, addPage, removePage, clearImage, dragHandlers, fileInputRef } as const
+  return { file, dataUrl, adjustedDataUrl, setAdjustedDataUrl, pages, isDragOver, fileTypeError, loadFile, addPage, removePage, clearImage, dragHandlers, fileInputRef } as const
 }

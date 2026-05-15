@@ -3,6 +3,7 @@ import type { RefObject } from 'react'
 import EngineSelector from './EngineSelector'
 import Dropzone from './Dropzone'
 import ImagePreview from './ImagePreview'
+import ImagePreprocessingPanel from './ImagePreprocessingPanel'
 import PageStrip from './PageStrip'
 import ResultPanel from './ResultPanel'
 import Button from '@/components/ui/Button'
@@ -31,7 +32,7 @@ export default function OcrView({
   ocrResult, ocrError, ocrRunning, onRunOcr, onSave, saving,
   cameraInputRef, batchOcr, onNavigateToLibrary,
 }: Props) {
-  const { file, dataUrl, pages, isDragOver, fileTypeError, loadFile, addPage, removePage, clearImage, dragHandlers, fileInputRef } = imageLoader
+  const { file, dataUrl, adjustedDataUrl, setAdjustedDataUrl, pages, isDragOver, fileTypeError, loadFile, addPage, removePage, clearImage, dragHandlers, fileInputRef } = imageLoader
   const engineReady = engineStates[selectedId]?.status === 'ready'
   const isBatchMode = batchOcr.queue.length >= 2
 
@@ -77,6 +78,12 @@ export default function OcrView({
                 <>
                   <PageStrip pages={pages} onAdd={addPage} onRemove={removePage} cameraInputRef={cameraInputRef} />
                   {dataUrl && <ImagePreview dataUrl={dataUrl} onClear={clearImage} />}
+                  {dataUrl && (
+                    <ImagePreprocessingPanel
+                      originalDataUrl={dataUrl}
+                      onProcessed={(adjusted) => setAdjustedDataUrl(adjusted)}
+                    />
+                  )}
                 </>
               ) : (
                 <Dropzone

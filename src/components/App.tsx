@@ -82,7 +82,7 @@ export default function App() {
       const category = classifyDocument(ocr.result.text)
       const doc = await create({
         title: firstLine.slice(0, 80),
-        imageDataUrl: imageLoader.dataUrl,
+        imageDataUrl: imageLoader.adjustedDataUrl ?? imageLoader.dataUrl,
         rawText: ocr.result.text,
         richText: '',
         engineId: selectedId,
@@ -94,7 +94,7 @@ export default function App() {
     } finally {
       setSaving(false)
     }
-  }, [imageLoader.dataUrl, ocr.result, create, selectedId, handleTabChange])
+  }, [imageLoader.adjustedDataUrl, imageLoader.dataUrl, ocr.result, create, selectedId, handleTabChange])
 
   const handleEmbedDoc = useCallback(
     async (doc: (typeof documents)[number]) => {
@@ -256,8 +256,9 @@ export default function App() {
               ocrRunning={ocr.running}
               onRunOcr={() => {
                 if (!imageLoader.dataUrl) return
-                if (imageLoader.pages.length > 1) {
-                  const [header, b64] = imageLoader.dataUrl.split(',')
+                const sourceUrl = imageLoader.adjustedDataUrl ?? imageLoader.dataUrl
+                if (imageLoader.adjustedDataUrl || imageLoader.pages.length > 1) {
+                  const [header, b64] = sourceUrl.split(',')
                   const mime = header.match(/:(.*?);/)?.[1] ?? 'image/jpeg'
                   const binary = atob(b64)
                   const bytes = new Uint8Array(binary.length)
