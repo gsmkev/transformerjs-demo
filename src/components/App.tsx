@@ -10,6 +10,7 @@ import { useDocuments } from '@/hooks/useDocuments'
 import { useRag } from '@/hooks/useRag'
 import { useChatHistory } from '@/hooks/useChatHistory'
 import { useBatchOcr } from '@/hooks/useBatchOcr'
+import { useCollections } from '@/hooks/useCollections'
 import { findNearDuplicates } from '@/services/duplicateDetectionService'
 import type { DuplicateResult } from '@/services/duplicateDetectionService'
 import DuplicateWarning from '@/components/ui/DuplicateWarning'
@@ -62,6 +63,8 @@ export default function App() {
   })()
 
   const chatHistory = useChatHistory({ limit: chatLimit })
+
+  const { collections, create: createCollection, rename: renameCollection, remove: removeCollection } = useCollections()
 
   const rag = useRag({ onAfterChat: chatHistory.saveHistory })
 
@@ -297,6 +300,8 @@ export default function App() {
                 onBack={() => setSelectedDocId(null)}
                 onDelete={async (id) => { await handleRemoveDoc(id); setSelectedDocId(null) }}
                 addExportEntry={addExportEntry}
+                collections={collections}
+                onAssignCollection={(collectionId) => update(selectedDoc.id, { collectionId })}
               />
             ) : (
               <DocumentList
@@ -305,6 +310,10 @@ export default function App() {
                 onOpen={setSelectedDocId}
                 onDelete={handleRemoveDoc}
                 onScanClick={() => handleTabChange('ocr')}
+                collections={collections}
+                onCreateCollection={(name) => createCollection(name).then(() => undefined)}
+                onRenameCollection={renameCollection}
+                onDeleteCollection={removeCollection}
               />
             )}
           </div>

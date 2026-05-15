@@ -6,7 +6,7 @@ import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
 import Highlight from '@tiptap/extension-highlight'
 import { CommentMark } from '@/lib/commentMark'
-import type { ScannedDocument, ExportHistoryEntry } from '@/types/document'
+import type { ScannedDocument, ExportHistoryEntry, Collection } from '@/types/document'
 import Button from '@/components/ui/Button'
 import Toast from '@/components/ui/Toast'
 import { shareDocument } from '@/services/exportService'
@@ -77,11 +77,13 @@ interface Props {
   onBack: () => void
   onDelete: (id: string) => Promise<void>
   addExportEntry: (id: string, format: ExportHistoryEntry['format']) => Promise<void>
+  collections: Collection[]
+  onAssignCollection: (collectionId: string | null) => Promise<void>
 }
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved'
 
-export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId, llmReady, onUpdate, onEmbed, onBack, onDelete, addExportEntry }: Props) {
+export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId, llmReady, onUpdate, onEmbed, onBack, onDelete, addExportEntry, collections, onAssignCollection }: Props) {
   const [title, setTitle] = useState(doc.title)
   const [tags, setTags] = useState<string[]>(doc.tags ?? [])
   const [expiresAt, setExpiresAt] = useState<number | null>(doc.expiresAt ?? null)
@@ -305,6 +307,21 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
               ✕
             </button>
           )}
+        </div>
+        {/* Collection selector */}
+        <div className="flex items-center gap-2 mt-2">
+          <label className="text-xs text-dim/70 flex-shrink-0">Colección:</label>
+          <select
+            value={doc.collectionId ?? ''}
+            onChange={(e) => onAssignCollection(e.target.value || null)}
+            className="text-xs px-2 py-1 rounded-lg border border-white/10 bg-surface text-ink focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 flex-1 max-w-[200px] [color-scheme:dark]"
+            aria-label="Asignar colección"
+          >
+            <option value="">Sin colección</option>
+            {collections.map((col) => (
+              <option key={col.id} value={col.id}>{col.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 
