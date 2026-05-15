@@ -9,6 +9,7 @@ import Toast from '@/components/ui/Toast'
 import { shareDocument } from '@/services/exportService'
 import PdfExportModal from './PdfExportModal'
 import PrintArea from './PrintArea'
+import TagEditor from './TagEditor'
 
 const AUTOSAVE_MS = 900
 
@@ -58,6 +59,7 @@ function Toolbar({ editor }: { editor: Editor | null }) {
 interface Props {
   doc: ScannedDocument
   ragModelReady: boolean
+  allTags: string[]
   onUpdate: (id: string, patch: Partial<ScannedDocument>) => Promise<void>
   onEmbed: (doc: ScannedDocument) => Promise<void>
   onBack: () => void
@@ -66,8 +68,9 @@ interface Props {
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved'
 
-export default function DocumentEditor({ doc, ragModelReady, onUpdate, onEmbed, onBack, onDelete }: Props) {
+export default function DocumentEditor({ doc, ragModelReady, allTags, onUpdate, onEmbed, onBack, onDelete }: Props) {
   const [title, setTitle] = useState(doc.title)
+  const [tags, setTags] = useState<string[]>(doc.tags ?? [])
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [embedding, setEmbedding] = useState(false)
   const [showOriginal, setShowOriginal] = useState(false)
@@ -101,6 +104,11 @@ export default function DocumentEditor({ doc, ragModelReady, onUpdate, onEmbed, 
   const handleTitleBlur = async () => {
     const trimmed = title.trim() || 'Untitled'
     if (trimmed !== doc.title) await onUpdate(doc.id, { title: trimmed })
+  }
+
+  const handleTagsChange = async (newTags: string[]) => {
+    setTags(newTags)
+    await onUpdate(doc.id, { tags: newTags })
   }
 
   const handleDelete = async () => {
@@ -184,6 +192,11 @@ export default function DocumentEditor({ doc, ragModelReady, onUpdate, onEmbed, 
             </button>
           )
         })}
+      </div>
+
+      {/* Tags */}
+      <div className="px-4 sm:px-6 py-3 border-b border-white/5 bg-surface/20">
+        <TagEditor tags={tags} allTags={allTags} onChange={handleTagsChange} />
       </div>
 
       {/* Content */}

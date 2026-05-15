@@ -91,6 +91,7 @@ export default function App() {
   }, [remove, refreshChunks])
 
   const selectedDoc = selectedDocId ? documents.find((d) => d.id === selectedDocId) : null
+  const allTags = Array.from(new Set(documents.flatMap((d) => d.tags ?? []))).sort()
 
   return (
     <div className="min-h-screen text-ink">
@@ -187,6 +188,7 @@ export default function App() {
               <DocumentEditor
                 doc={selectedDoc}
                 ragModelReady={rag.embedStatus === 'ready'}
+                allTags={allTags}
                 onUpdate={update}
                 onEmbed={handleEmbedDoc}
                 onBack={() => setSelectedDocId(null)}
