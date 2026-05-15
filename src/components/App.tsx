@@ -45,7 +45,7 @@ export default function App() {
   const { selectedId, setSelectedId } = useSelectedEngine()
   const imageLoader = useImageLoader()
   const ocr = useOcr({ workersRef, selectedId })
-  const { documents, chunks, loading: docsLoading, create, update, remove, refresh, refreshChunks } = useDocuments()
+  const { documents, chunks, loading: docsLoading, create, update, remove, refresh, refreshChunks, addExportEntry } = useDocuments()
   const batchOcr = useBatchOcr({
     selectedEngineId: selectedId,
     runOcr: (file: File) => ocr.executeAndReturn(file),
@@ -296,6 +296,7 @@ export default function App() {
                 onEmbed={handleEmbedDoc}
                 onBack={() => setSelectedDocId(null)}
                 onDelete={async (id) => { await handleRemoveDoc(id); setSelectedDocId(null) }}
+                addExportEntry={addExportEntry}
               />
             ) : (
               <DocumentList

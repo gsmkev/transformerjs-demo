@@ -6,13 +6,14 @@ import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
 import Highlight from '@tiptap/extension-highlight'
 import { CommentMark } from '@/lib/commentMark'
-import type { ScannedDocument } from '@/types/document'
+import type { ScannedDocument, ExportHistoryEntry } from '@/types/document'
 import Button from '@/components/ui/Button'
 import Toast from '@/components/ui/Toast'
 import { shareDocument } from '@/services/exportService'
 import ExportMenu from '@/components/ui/ExportMenu'
 import PdfExportModal from './PdfExportModal'
 import PrintArea from './PrintArea'
+import ExportHistoryDrawer from './ExportHistoryDrawer'
 import TagEditor from './TagEditor'
 import SchemaEditor from './SchemaEditor'
 import ExtractionTable from './ExtractionTable'
@@ -75,11 +76,12 @@ interface Props {
   onEmbed: (doc: ScannedDocument) => Promise<void>
   onBack: () => void
   onDelete: (id: string) => Promise<void>
+  addExportEntry: (id: string, format: ExportHistoryEntry['format']) => Promise<void>
 }
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved'
 
-export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId, llmReady, onUpdate, onEmbed, onBack, onDelete }: Props) {
+export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId, llmReady, onUpdate, onEmbed, onBack, onDelete, addExportEntry }: Props) {
   const [title, setTitle] = useState(doc.title)
   const [tags, setTags] = useState<string[]>(doc.tags ?? [])
   const [expiresAt, setExpiresAt] = useState<number | null>(doc.expiresAt ?? null)
@@ -98,6 +100,7 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
   const [showAnnotations, setShowAnnotations] = useState(false)
   const [pendingComment, setPendingComment] = useState('')
   const [bubbleMode, setBubbleMode] = useState<'toolbar' | 'comment'>('toolbar')
+  const [showExportHistory, setShowExportHistory] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout>>()
 
   const scheduleSave = useCallback(
@@ -155,12 +158,18 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
   const handlePrint = (includeImage: boolean) => {
     setPrintIncludeImage(includeImage)
     setShowPdfModal(false)
+    addExportEntry(doc.id, 'pdf').catch((err) => console.error('Export history save failed:', err))
     setTimeout(() => window.print(), 50)
   }
 
   const handleShare = async () => {
     const result = await shareDocument(doc)
-    if (result.copied) setToastMsg('Texto copiado al portapapeles')
+    if (result.copied) {
+      setToastMsg('Texto copiado al portapapeles')
+      await addExportEntry(doc.id, 'copy')
+    } else if (result.shared) {
+      await addExportEntry(doc.id, 'share')
+    }
   }
 
   const handleSaveSchema = async (schema: ExtractionField[]) => {
@@ -230,7 +239,14 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
         <Button variant="ghost" onClick={() => setShowPdfModal(true)} className="py-1 px-2.5 text-xs flex-shrink-0">
           PDF
         </Button>
-        <ExportMenu doc={doc} />
+        <ExportMenu doc={doc} onExport={(fmt) => addExportEntry(doc.id, fmt)} />
+        <Button
+          variant="ghost"
+          onClick={() => setShowExportHistory(true)}
+          className="py-1 px-2.5 text-xs flex-shrink-0"
+        >
+          {doc.exportHistory?.length ? `📤 ${doc.exportHistory.length}` : '📤'}
+        </Button>
         <Button variant="ghost" onClick={handleDelete} className="py-1 px-2.5 text-xs flex-shrink-0 text-err/80 hover:text-err hover:bg-err/10 hover:border-err/20">
           Eliminar
         </Button>
@@ -457,6 +473,12 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
           hasImage={!!doc.imageDataUrl}
           onConfirm={handlePrint}
           onClose={() => setShowPdfModal(false)}
+        />
+      )}
+      {showExportHistory && (
+        <ExportHistoryDrawer
+          history={doc.exportHistory ?? []}
+          onClose={() => setShowExportHistory(false)}
         />
       )}
       <PrintArea doc={doc} includeImage={printIncludeImage} />

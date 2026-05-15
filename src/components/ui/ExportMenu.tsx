@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import type { ScannedDocument } from '@/types/document'
+import type { ScannedDocument, ExportHistoryEntry } from '@/types/document'
 import Button from './Button'
 import {
   exportDocx, exportOdt, exportOds,
@@ -13,9 +13,10 @@ type Format = 'docx' | 'odt' | 'ods'
 interface Props {
   doc?: ScannedDocument
   docs?: ScannedDocument[]
+  onExport?: (format: ExportHistoryEntry['format']) => void
 }
 
-export default function ExportMenu({ doc, docs }: Props) {
+export default function ExportMenu({ doc, docs, onExport }: Props) {
   const [open, setOpen] = useState(false)
   const [format, setFormat] = useState<Format>('docx')
   const [includeImage, setIncludeImage] = useState(true)
@@ -53,6 +54,7 @@ export default function ExportMenu({ doc, docs }: Props) {
         else if (format === 'odt') await exportOdt(d, includeImage)
         else await exportOds(d)
       }
+      onExport?.(format)
       setOpen(false)
     } finally {
       setLoading(false)
