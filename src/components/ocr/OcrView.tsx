@@ -1,4 +1,5 @@
 import type { EngineStateMap, OcrResult } from '@/types/ocr'
+import type { RefObject } from 'react'
 import EngineSelector from './EngineSelector'
 import Dropzone from './Dropzone'
 import ImagePreview from './ImagePreview'
@@ -17,11 +18,13 @@ interface Props {
   onRunOcr: () => void
   onSave: () => Promise<void>
   saving: boolean
+  cameraInputRef?: RefObject<HTMLInputElement>
 }
 
 export default function OcrView({
   selectedId, engineStates, onSelectEngine, imageLoader,
   ocrResult, ocrError, ocrRunning, onRunOcr, onSave, saving,
+  cameraInputRef,
 }: Props) {
   const { file, dataUrl, isDragOver, fileTypeError, loadFile, clearImage, dragHandlers, fileInputRef } = imageLoader
   const engineReady = engineStates[selectedId]?.status === 'ready'
@@ -45,7 +48,14 @@ export default function OcrView({
           {dataUrl ? (
             <ImagePreview dataUrl={dataUrl} onClear={clearImage} />
           ) : (
-            <Dropzone isDragOver={isDragOver} fileTypeError={fileTypeError} onFile={loadFile} dragHandlers={dragHandlers} fileInputRef={fileInputRef} />
+            <Dropzone
+              isDragOver={isDragOver}
+              fileTypeError={fileTypeError}
+              onFile={loadFile}
+              dragHandlers={dragHandlers}
+              fileInputRef={fileInputRef}
+              cameraInputRef={cameraInputRef}
+            />
           )}
 
           <Button onClick={onRunOcr} disabled={!file || !engineReady || ocrRunning} spinning={ocrRunning} className="w-full py-2.5">

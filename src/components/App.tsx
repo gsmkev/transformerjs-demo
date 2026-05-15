@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import type { Tab } from '@/types/ocr'
 import { useEngineManager } from '@/hooks/useEngineManager'
 import { useSelectedEngine } from '@/hooks/useSelectedEngine'
@@ -37,6 +37,13 @@ export default function App() {
     setActiveKey((k) => k + 1)
     if (t !== 'documents') setSelectedDocId(null)
   }, [])
+
+  const dropzoneCameraRef = useRef<HTMLInputElement>(null)
+
+  const handleCameraCapture = useCallback(() => {
+    handleTabChange('ocr')
+    setTimeout(() => dropzoneCameraRef.current?.click(), 150)
+  }, [handleTabChange])
 
   const handleSave = useCallback(async () => {
     if (!imageLoader.dataUrl || !ocr.result) return
@@ -121,7 +128,7 @@ export default function App() {
       <main className="max-w-4xl mx-auto mb-20 sm:mb-0">
         <div id="panel-home" role="tabpanel" aria-hidden={tab !== 'home'} className={tab !== 'home' ? 'hidden' : ''}>
           <div key={tab === 'home' ? activeKey : 0} className={tab === 'home' ? 'tab-panel-enter' : ''}>
-            <DashboardView documents={documents} onNavigate={handleTabChange} />
+            <DashboardView documents={documents} onNavigate={handleTabChange} onCameraCapture={handleCameraCapture} />
           </div>
         </div>
         <div id="panel-engines" role="tabpanel" aria-hidden={tab !== 'engines'} className={tab !== 'engines' ? 'hidden' : ''}>
@@ -149,6 +156,7 @@ export default function App() {
               onRunOcr={() => imageLoader.file && ocr.execute(imageLoader.file)}
               onSave={handleSave}
               saving={saving}
+              cameraInputRef={dropzoneCameraRef}
             />
           </div>
         </div>

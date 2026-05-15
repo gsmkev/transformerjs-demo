@@ -10,9 +10,10 @@ interface Props {
     onDrop: (e: DragEvent) => void
   }
   fileInputRef: RefObject<HTMLInputElement | null>
+  cameraInputRef?: RefObject<HTMLInputElement>
 }
 
-export default function Dropzone({ isDragOver, fileTypeError, onFile, dragHandlers, fileInputRef }: Props) {
+export default function Dropzone({ isDragOver, fileTypeError, onFile, dragHandlers, fileInputRef, cameraInputRef }: Props) {
   const open = () => fileInputRef.current?.click()
 
   const onKeyDown = (e: KeyboardEvent) => {
@@ -56,7 +57,32 @@ export default function Dropzone({ isDragOver, fileTypeError, onFile, dragHandle
           tabIndex={-1}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f) }}
         />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          aria-hidden="true"
+          tabIndex={-1}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) { onFile(f); e.target.value = '' } }}
+        />
       </div>
+
+      {cameraInputRef && (
+        <button
+          type="button"
+          onClick={() => cameraInputRef.current?.click()}
+          className="sm:hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-dim hover:text-ink hover:bg-white/5 transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          Tomar foto
+        </button>
+      )}
+
       {fileTypeError && (
         <div className="flex items-center gap-1.5 text-xs text-err">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
