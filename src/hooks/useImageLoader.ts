@@ -26,7 +26,9 @@ async function concatenatePages(dataUrls: string[]): Promise<string> {
     ctx.drawImage(img, 0, y)
     y += img.naturalHeight
   }
-  return canvas.toDataURL('image/jpeg', 0.92)
+  const result = canvas.toDataURL('image/jpeg', 0.92)
+  canvas.width = 0
+  return result
 }
 
 function readFileAsDataUrl(f: File): Promise<string> {
@@ -56,9 +58,9 @@ export function useImageLoader() {
       return
     }
     let cancelled = false
-    concatenatePages(pages).then((url) => {
-      if (!cancelled) setDataUrl(url)
-    })
+    concatenatePages(pages)
+      .then((url) => { if (!cancelled) setDataUrl(url) })
+      .catch(() => { if (!cancelled) setDataUrl(null) })
     return () => { cancelled = true }
   }, [pages])
 
