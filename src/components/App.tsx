@@ -175,7 +175,20 @@ export default function App() {
               ocrResult={ocr.result}
               ocrError={ocr.error}
               ocrRunning={ocr.running}
-              onRunOcr={() => imageLoader.file && ocr.execute(imageLoader.file)}
+              onRunOcr={() => {
+                if (!imageLoader.dataUrl) return
+                if (imageLoader.pages.length > 1) {
+                  const [header, b64] = imageLoader.dataUrl.split(',')
+                  const mime = header.match(/:(.*?);/)?.[1] ?? 'image/jpeg'
+                  const binary = atob(b64)
+                  const bytes = new Uint8Array(binary.length)
+                  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+                  const f = new File([bytes], 'multipage.jpg', { type: mime })
+                  ocr.execute(f)
+                } else if (imageLoader.file) {
+                  ocr.execute(imageLoader.file)
+                }
+              }}
               onSave={handleSave}
               saving={saving}
               cameraInputRef={dropzoneCameraRef}

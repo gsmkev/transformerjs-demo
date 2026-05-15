@@ -3,6 +3,7 @@ import type { RefObject } from 'react'
 import EngineSelector from './EngineSelector'
 import Dropzone from './Dropzone'
 import ImagePreview from './ImagePreview'
+import PageStrip from './PageStrip'
 import ResultPanel from './ResultPanel'
 import Button from '@/components/ui/Button'
 import type { useImageLoader } from '@/hooks/useImageLoader'
@@ -26,7 +27,7 @@ export default function OcrView({
   ocrResult, ocrError, ocrRunning, onRunOcr, onSave, saving,
   cameraInputRef,
 }: Props) {
-  const { file, dataUrl, isDragOver, fileTypeError, loadFile, clearImage, dragHandlers, fileInputRef } = imageLoader
+  const { file, dataUrl, pages, isDragOver, fileTypeError, loadFile, addPage, removePage, clearImage, dragHandlers, fileInputRef } = imageLoader
   const engineReady = engineStates[selectedId]?.status === 'ready'
 
   return (
@@ -45,20 +46,23 @@ export default function OcrView({
             </div>
           )}
 
-          {dataUrl ? (
-            <ImagePreview dataUrl={dataUrl} onClear={clearImage} />
+          {pages.length >= 1 ? (
+            <>
+              <PageStrip pages={pages} onAdd={addPage} onRemove={removePage} cameraInputRef={cameraInputRef} />
+              {dataUrl && <ImagePreview dataUrl={dataUrl} onClear={clearImage} />}
+            </>
           ) : (
             <Dropzone
               isDragOver={isDragOver}
               fileTypeError={fileTypeError}
-              onFile={loadFile}
+              onFile={addPage}
               dragHandlers={dragHandlers}
               fileInputRef={fileInputRef}
               cameraInputRef={cameraInputRef}
             />
           )}
 
-          <Button onClick={onRunOcr} disabled={!file || !engineReady || ocrRunning} spinning={ocrRunning} className="w-full py-2.5">
+          <Button onClick={onRunOcr} disabled={pages.length === 0 || !engineReady || ocrRunning} spinning={ocrRunning} className="w-full py-2.5">
             {ocrRunning ? 'Procesando…' : 'Ejecutar OCR'}
           </Button>
 
