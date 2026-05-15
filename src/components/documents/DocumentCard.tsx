@@ -1,5 +1,16 @@
 import type { ScannedDocument } from '@/types/document'
 
+function expiryBadge(expiresAt: number | null | undefined): { label: string; cls: string } | null {
+  if (!expiresAt) return null
+  const now = Date.now()
+  const daysLeft = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24))
+  if (daysLeft < 0)   return { label: 'Caducado',                cls: 'text-err/90 bg-err/10 border-err/20' }
+  if (daysLeft <= 7)  return { label: `Caduca en ${daysLeft}d`,  cls: 'text-err/70 bg-err/8 border-err/15' }
+  if (daysLeft <= 30) return { label: `Caduca en ${daysLeft}d`,  cls: 'text-yellow-400/80 bg-yellow-400/8 border-yellow-400/15' }
+  const dateStr = new Date(expiresAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  return { label: `Caduca ${dateStr}`, cls: 'text-ok/70 bg-ok/8 border-ok/15' }
+}
+
 const CATEGORY_LABELS: Record<string, string> = {
   factura: '🧾 Factura',
   contrato: '📝 Contrato',
@@ -64,6 +75,14 @@ export default function DocumentCard({ doc, onOpen, onDelete, selectionMode, isS
               {CATEGORY_LABELS[doc.category] ?? doc.category}
             </span>
           )}
+          {(() => {
+            const badge = expiryBadge(doc.expiresAt)
+            return badge ? (
+              <span className={`text-xs px-2 py-0.5 rounded-full border ${badge.cls}`}>
+                {badge.label}
+              </span>
+            ) : null
+          })()}
         </div>
       </div>
       <button
