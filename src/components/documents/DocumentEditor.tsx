@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useEditor, EditorContent, type Editor } from '@tiptap/react'
+import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
+import Highlight from '@tiptap/extension-highlight'
+import { CommentMark } from '@/lib/commentMark'
 import type { ScannedDocument } from '@/types/document'
 import Button from '@/components/ui/Button'
 import Toast from '@/components/ui/Toast'
@@ -15,6 +18,7 @@ import SchemaEditor from './SchemaEditor'
 import ExtractionTable from './ExtractionTable'
 import { extractStructuredData } from '@/services/extractionService'
 import type { ExtractionField } from '@/types/document'
+import AnnotationSidebar from './AnnotationSidebar'
 
 const AUTOSAVE_MS = 900
 
@@ -91,6 +95,9 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
   const canShare = typeof navigator !== 'undefined' && !!navigator.share
   const [showPdfModal, setShowPdfModal] = useState(false)
   const [printIncludeImage, setPrintIncludeImage] = useState(true)
+  const [showAnnotations, setShowAnnotations] = useState(false)
+  const [pendingComment, setPendingComment] = useState('')
+  const [bubbleMode, setBubbleMode] = useState<'toolbar' | 'comment'>('toolbar')
   const saveTimer = useRef<ReturnType<typeof setTimeout>>()
 
   const scheduleSave = useCallback(
@@ -107,7 +114,7 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
   )
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [StarterKit, Highlight.configure({ multicolor: false }), CommentMark],
     content: doc.richText ? JSON.parse(doc.richText) : rawToHtml(doc.rawText),
     onUpdate: ({ editor }) => scheduleSave(() => editor.getJSON()),
   })
@@ -229,7 +236,7 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
         </Button>
       </div>
 
-      {/* Edit / Original toggle */}
+      {/* Edit / Original / Notas toggle */}
       <div className="flex gap-1 px-4 py-2.5 border-b border-white/5 bg-surface/30">
         {(['edit', 'original'] as const).map((mode) => {
           const isActive = mode === 'edit' ? !showOriginal : showOriginal
@@ -247,6 +254,16 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
             </button>
           )
         })}
+        <button
+          onClick={() => setShowAnnotations((v) => !v)}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
+            showAnnotations
+              ? 'bg-accent/15 border border-accent/30 text-accent'
+              : 'text-dim hover:text-ink hover:bg-white/5 border border-transparent'
+          }`}
+        >
+          💬 Notas
+        </button>
       </div>
 
       {/* Tags */}
@@ -348,6 +365,88 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
         </div>
       ) : (
         <>
+          {editor && (
+            <BubbleMenu editor={editor}>
+              {bubbleMode === 'toolbar' ? (
+                <div className="flex gap-1 bg-surface border border-white/15 rounded-xl shadow-lg px-2 py-1.5">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      editor.chain().focus().toggleHighlight().run()
+                    }}
+                    className={`px-2 py-1 text-xs rounded-lg transition-colors ${editor.isActive('highlight') ? 'bg-accent/20 text-accent' : 'text-dim hover:text-ink hover:bg-white/8'}`}
+                    aria-label="Resaltar"
+                  >
+                    ▐▌
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      setBubbleMode('comment')
+                      setPendingComment('')
+                    }}
+                    className="px-2 py-1 text-xs rounded-lg text-dim hover:text-ink hover:bg-white/8 transition-colors"
+                    aria-label="Añadir comentario"
+                  >
+                    💬
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-1 items-center bg-surface border border-white/15 rounded-xl shadow-lg px-2 py-1.5">
+                  <input
+                    autoFocus
+                    value={pendingComment}
+                    onChange={(e) => setPendingComment(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && pendingComment.trim()) {
+                        editor.chain().focus().setMark('comment', { comment: pendingComment.trim() }).run()
+                        setBubbleMode('toolbar')
+                        setPendingComment('')
+                      }
+                      if (e.key === 'Escape') { setBubbleMode('toolbar'); setPendingComment('') }
+                    }}
+                    placeholder="Escribe tu nota…"
+                    className="w-44 px-2 py-0.5 text-xs bg-transparent text-ink placeholder:text-dim/50 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      if (pendingComment.trim()) {
+                        editor.chain().focus().setMark('comment', { comment: pendingComment.trim() }).run()
+                      }
+                      setBubbleMode('toolbar')
+                      setPendingComment('')
+                    }}
+                    disabled={!pendingComment.trim()}
+                    className="text-xs px-2 py-1 rounded-lg bg-accent/15 border border-accent/30 text-accent disabled:opacity-40"
+                  >
+                    OK
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); setBubbleMode('toolbar'); setPendingComment('') }}
+                    className="text-xs text-dim/40 hover:text-dim"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </BubbleMenu>
+          )}
+          {showAnnotations && (
+            <AnnotationSidebar
+              editor={editor}
+              onRemove={(pos, length) => {
+                editor?.chain().focus()
+                  .setTextSelection({ from: pos, to: pos + length })
+                  .unsetMark('comment')
+                  .run()
+              }}
+            />
+          )}
           <Toolbar editor={editor} />
           <EditorContent editor={editor} className="flex-1 overflow-y-auto tiptap-editor" />
         </>
