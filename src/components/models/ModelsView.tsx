@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { ENGINES } from '@/config/engines'
 import { LLM_MODELS } from '@/config/llmModels'
 import type { EngineStateMap } from '@/types/ocr'
@@ -128,6 +129,13 @@ interface Props {
   setResponseLength: (v: ResponseLength) => void
 }
 
+type Section = 'ocr' | 'ai'
+
+const SECTION_TABS: { id: Section; label: string }[] = [
+  { id: 'ocr', label: 'Motores OCR' },
+  { id: 'ai',  label: 'Modelos de IA' },
+]
+
 export default function ModelsView({
   engineStates, selectedId, onLoad, onRetry, onSelect,
   embedStatus, embedProgress, embedError, loadEmbedModel,
@@ -136,91 +144,107 @@ export default function ModelsView({
   selectedLlmId, setSelectedLlmId, webGpuAvailable,
   responseLength, setResponseLength,
 }: Props) {
-  return (
-    <div className="p-4 sm:p-6 space-y-8 animate-fade-in">
+  const [section, setSection] = useState<Section>('ocr')
 
-      {/* ── OCR Engines ── */}
-      <section className="space-y-4">
-        <div>
-          <p className="section-label">Motores OCR</p>
-          <p className="text-xs text-dim mt-2 leading-relaxed flex items-center gap-1.5">
+  return (
+    <div className="animate-fade-in">
+
+      {/* Inner tab bar */}
+      <nav className="flex gap-1 px-4 sm:px-6 py-3 border-b border-white/5">
+        {SECTION_TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setSection(t.id)}
+            className={`px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all border focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 ${
+              section === t.id
+                ? 'bg-accent/15 border-accent/30 text-accent'
+                : 'text-dim hover:text-ink hover:bg-white/5 border-transparent'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
+      {/* OCR Engines */}
+      {section === 'ocr' && (
+        <div className="p-4 sm:p-6 space-y-4">
+          <p className="text-xs text-dim leading-relaxed flex items-center gap-1.5">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ok flex-shrink-0" aria-hidden="true">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
             Los modelos corren en tu navegador. Ningún dato sale de tu dispositivo.
           </p>
+          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {ENGINES.map((engine) => (
+              <EngineCard
+                key={engine.id}
+                engine={engine}
+                state={engineStates[engine.id]}
+                isSelected={selectedId === engine.id}
+                onLoad={() => onLoad(engine.id)}
+                onRetry={() => onRetry(engine.id)}
+                onSelect={() => onSelect(engine.id)}
+              />
+            ))}
+          </div>
         </div>
-        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {ENGINES.map((engine) => (
-            <EngineCard
-              key={engine.id}
-              engine={engine}
-              state={engineStates[engine.id]}
-              isSelected={selectedId === engine.id}
-              onLoad={() => onLoad(engine.id)}
-              onRetry={() => onRetry(engine.id)}
-              onSelect={() => onSelect(engine.id)}
-            />
-          ))}
+      )}
+
+      {/* AI Models */}
+      {section === 'ai' && (
+        <div className="p-4 sm:p-6 space-y-3">
+          <ModelRow
+            label="Bi-encoder · Recuperación semántica"
+            desc="all-MiniLM-L6-v2 · ~23 MB · búsqueda semántica por fragmentos"
+            status={embedStatus} progress={embedProgress} error={embedError} onLoad={loadEmbedModel}
+          />
+
+          <ModelRow
+            label="Cross-encoder · Reranker"
+            desc="ms-marco-MiniLM-L-6-v2 · ~22 MB · mejora la precisión del ranking"
+            status={rerankerStatus} progress={rerankerProgress} error={rerankerError} onLoad={loadReranker}
+          />
+
+          <ModelRow
+            label="Modelo de lenguaje · Generación"
+            desc={
+              webGpuAvailable === false
+                ? 'WebGPU no disponible — requiere Chrome 113+ / Edge 113+'
+                : 'Acelerado por WebGPU · corre en tu GPU'
+            }
+            status={llmStatus} progress={llmProgress} error={llmError} onLoad={loadLlm}
+          >
+            {llmStatus !== 'ready' && webGpuAvailable !== false && (
+              <div className="space-y-1.5">
+                {LLM_MODELS.map((m) => (
+                  <label key={m.id} className={`flex items-start gap-2.5 cursor-pointer rounded-xl p-2.5 border transition-all ${
+                    selectedLlmId === m.id ? 'border-accent/30 bg-accent/8' : 'border-white/7 hover:border-white/15 hover:bg-white/3'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="llm-model"
+                      value={m.id}
+                      checked={selectedLlmId === m.id}
+                      onChange={() => setSelectedLlmId(m.id)}
+                      className="mt-0.5 accent-accent"
+                    />
+                    <div>
+                      <p className="text-xs font-semibold text-ink leading-snug">{m.label}</p>
+                      <p className="text-xs text-dim mt-0.5">{m.size} · {m.desc}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+            {llmStatus === 'loading' && llmProgressText && (
+              <p className="text-xs text-dim/70 truncate font-mono">{llmProgressText}</p>
+            )}
+          </ModelRow>
+
+          <ResponseLengthPicker value={responseLength} onChange={setResponseLength} />
         </div>
-      </section>
-
-      <div className="border-t border-white/7" />
-
-      {/* ── AI Models ── */}
-      <section className="space-y-3">
-        <p className="section-label">Modelos de IA · RAG</p>
-
-        <ModelRow
-          label="Bi-encoder · Recuperación semántica"
-          desc="all-MiniLM-L6-v2 · ~23 MB · búsqueda semántica por fragmentos"
-          status={embedStatus} progress={embedProgress} error={embedError} onLoad={loadEmbedModel}
-        />
-
-        <ModelRow
-          label="Cross-encoder · Reranker"
-          desc="ms-marco-MiniLM-L-6-v2 · ~22 MB · mejora la precisión del ranking"
-          status={rerankerStatus} progress={rerankerProgress} error={rerankerError} onLoad={loadReranker}
-        />
-
-        <ModelRow
-          label="Modelo de lenguaje · Generación"
-          desc={
-            webGpuAvailable === false
-              ? 'WebGPU no disponible — requiere Chrome 113+ / Edge 113+'
-              : 'Acelerado por WebGPU · corre en tu GPU'
-          }
-          status={llmStatus} progress={llmProgress} error={llmError} onLoad={loadLlm}
-        >
-          {llmStatus !== 'ready' && webGpuAvailable !== false && (
-            <div className="space-y-1.5">
-              {LLM_MODELS.map((m) => (
-                <label key={m.id} className={`flex items-start gap-2.5 cursor-pointer rounded-xl p-2.5 border transition-all ${
-                  selectedLlmId === m.id ? 'border-accent/30 bg-accent/8' : 'border-white/7 hover:border-white/15 hover:bg-white/3'
-                }`}>
-                  <input
-                    type="radio"
-                    name="llm-model"
-                    value={m.id}
-                    checked={selectedLlmId === m.id}
-                    onChange={() => setSelectedLlmId(m.id)}
-                    className="mt-0.5 accent-accent"
-                  />
-                  <div>
-                    <p className="text-xs font-semibold text-ink leading-snug">{m.label}</p>
-                    <p className="text-xs text-dim mt-0.5">{m.size} · {m.desc}</p>
-                  </div>
-                </label>
-              ))}
-            </div>
-          )}
-          {llmStatus === 'loading' && llmProgressText && (
-            <p className="text-xs text-dim/70 truncate font-mono">{llmProgressText}</p>
-          )}
-        </ModelRow>
-
-        <ResponseLengthPicker value={responseLength} onChange={setResponseLength} />
-      </section>
+      )}
 
     </div>
   )
