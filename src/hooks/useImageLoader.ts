@@ -63,7 +63,10 @@ export function useImageLoader() {
     let cancelled = false
     concatenatePages(pages)
       .then((url) => { if (!cancelled) { setDataUrl(url); setAdjustedDataUrl(null) } })
-      .catch(() => { if (!cancelled) { setDataUrl(null); setAdjustedDataUrl(null) } })
+      .catch((err: unknown) => {
+        console.error('[useImageLoader] concatenatePages error:', err)
+        if (!cancelled) { setDataUrl(null); setAdjustedDataUrl(null) }
+      })
     return () => { cancelled = true }
   }, [pages])
 
@@ -71,7 +74,9 @@ export function useImageLoader() {
     setFileTypeError(null)
 
     if (f.type === 'application/pdf') {
+      console.log('[useImageLoader] PDF detected, calling pdfToImages for:', f.name)
       pdfToImages(f).then((urls) => {
+        console.log('[useImageLoader] pdfToImages success, pages:', urls.length)
         if (urls.length === 0) {
           setFileTypeError(`"${f.name}" no contiene páginas renderizables.`)
           return
@@ -80,8 +85,10 @@ export function useImageLoader() {
           if (prev.length === 0) setFile(f)
           return [...prev, ...urls]
         })
-      }).catch(() => {
-        setFileTypeError(`No se pudo leer "${f.name}" como PDF.`)
+      }).catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error('[useImageLoader] pdfToImages error:', msg, err)
+        setFileTypeError(`No se pudo leer "${f.name}" como PDF: ${msg}`)
       })
       return
     }
