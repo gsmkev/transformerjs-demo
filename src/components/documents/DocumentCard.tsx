@@ -37,7 +37,7 @@ export default function DocumentCard({ doc, onOpen, onDelete, selectionMode, isS
 
   return (
     <div
-      className="flex gap-4 group relative rounded-xl border border-rim bg-surface active:scale-[0.99] transition-transform cursor-pointer p-4"
+      className="flex gap-4 group relative rounded-xl border border-rim bg-surface hover:bg-surface2 active:scale-[0.99] transition-all cursor-pointer p-4"
       onClick={selectionMode ? onToggleSelect : onOpen}
       role="button"
       tabIndex={0}
