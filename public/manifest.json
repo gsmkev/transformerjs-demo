@@ -1,35 +1,19 @@
 {
-  "name": "Papeleo",
-  "short_name": "Papeleo",
-  "description": "Digitaliza y organiza tus documentos — 100% privado, funciona sin internet.",
+  "name": "Archivo",
+  "short_name": "Archivo",
+  "description": "Tu vault personal de documentos — 100% privado, funciona sin internet.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "any",
-  "background_color": "#07080f",
-  "theme_color": "#0d9488",
+  "background_color": "#0f0f11",
+  "theme_color": "#4f46e5",
+  "lang": "es",
   "categories": ["productivity", "utilities"],
   "icons": [
-    {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
-    }
+    { "src": "/icons/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" },
+    { "src": "/icons/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "maskable" }
   ],
   "screenshots": [
-    {
-      "src": "/icons/icon.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
-      "form_factor": "narrow",
-      "label": "Papeleo — digitaliza y organiza tus documentos"
-    }
+    { "src": "/icons/icon.svg", "sizes": "512x512", "type": "image/svg+xml", "form_factor": "narrow" }
   ]
 }
