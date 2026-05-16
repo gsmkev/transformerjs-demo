@@ -206,7 +206,7 @@ export default function RagView({ documents, chunks, rag, chatHistory, onEmbedDo
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() } }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSubmit() } }}
               placeholder="Pregunta algo… (Enter para enviar)"
               rows={2}
               disabled={rag.streaming}
