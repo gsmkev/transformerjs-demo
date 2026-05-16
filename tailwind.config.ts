@@ -12,7 +12,7 @@ const config: Config = {
         rim:      'var(--color-rim)',
 
         accent: {
-          DEFAULT: 'rgb(var(--color-accent-rgb) / <alpha-value>)',
+          DEFAULT: 'var(--color-accent)',
           light:   'var(--color-accent-light)',
           dark:    'var(--color-accent-dark)',
           glow:    'var(--color-accent-glow)',
