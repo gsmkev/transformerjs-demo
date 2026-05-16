@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 
 const STORAGE_KEY = 'archivo_onboarding'
 
@@ -64,7 +64,9 @@ export default function OnboardingBanner({ onOpenSecurity, onOpenModels, onOpenS
     })
   }, [])
 
-  if (hasDocuments) complete(3)
+  useEffect(() => {
+    if (hasDocuments) complete(3)
+  }, [hasDocuments, complete])
 
   const allDone = STEPS.every((s) => state.completedSteps.includes(s.id))
   if (state.dismissed || allDone) return null
@@ -98,6 +100,7 @@ export default function OnboardingBanner({ onOpenSecurity, onOpenModels, onOpenS
             onClick={() => setExpanded((e) => !e)}
             className="text-xs font-medium text-accent hover:text-accent-dark transition-colors"
             aria-expanded={expanded}
+            aria-label={expanded ? 'Ocultar pasos de configuración' : 'Ver pasos de configuración'}
           >
             {expanded ? 'Ocultar' : 'Ver'}
           </button>
