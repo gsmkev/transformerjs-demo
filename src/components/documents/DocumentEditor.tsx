@@ -103,6 +103,7 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
   const [pendingComment, setPendingComment] = useState('')
   const [bubbleMode, setBubbleMode] = useState<'toolbar' | 'comment'>('toolbar')
   const [showExportHistory, setShowExportHistory] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout>>()
 
   const scheduleSave = useCallback(
@@ -249,6 +250,17 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
         >
           {doc.exportHistory?.length ? `📤 ${doc.exportHistory.length}` : '📤'}
         </Button>
+        <button
+          type="button"
+          onClick={() => setMenuOpen((o) => !o)}
+          aria-label="Más opciones"
+          aria-expanded={menuOpen}
+          className="p-2 rounded-lg text-dim hover:text-ink hover:bg-surface transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
+          </svg>
+        </button>
         <Button variant="ghost" onClick={handleDelete} className="py-1 px-2.5 text-xs flex-shrink-0 text-err/80 hover:text-err hover:bg-err/10 hover:border-err/20">
           Eliminar
         </Button>
@@ -325,63 +337,67 @@ export default function DocumentEditor({ doc, ragModelReady, allTags, llmModelId
         </div>
       </div>
 
-      {/* Datos estructurados */}
-      <div className="px-4 sm:px-6 py-3 border-b border-white/5 bg-surface/20 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="section-label">Datos estructurados</p>
-          {localSchema.length > 0 && !editingSchema && (
-            <button
-              type="button"
-              onClick={() => setEditingSchema(true)}
-              className="text-xs text-dim/60 hover:text-dim transition-colors"
-            >
-              Editar schema
-            </button>
-          )}
-        </div>
-
-        {editingSchema || localSchema.length === 0 ? (
-          <div className="space-y-3">
-            <SchemaEditor schema={localSchema} onChange={setLocalSchema} />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleSaveSchema(localSchema)}
-                disabled={localSchema.length === 0}
-                className="text-xs px-3 py-1.5 rounded-lg bg-accent/15 border border-accent/30 text-accent disabled:opacity-40 transition-colors hover:bg-accent/20"
-              >
-                Guardar schema
-              </button>
-              {editingSchema && (
-                <button type="button" onClick={() => setEditingSchema(false)} className="text-xs text-dim hover:text-ink transition-colors">
-                  Cancelar
+      {/* Datos estructurados — secondary panel, hidden behind ··· menu */}
+      {menuOpen && (
+        <div className="border-t border-rim">
+          <div className="px-4 sm:px-6 py-3 border-b border-white/5 bg-surface/20 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="section-label">Datos estructurados</p>
+              {localSchema.length > 0 && !editingSchema && (
+                <button
+                  type="button"
+                  onClick={() => setEditingSchema(true)}
+                  className="text-xs text-dim/60 hover:text-dim transition-colors"
+                >
+                  Editar schema
                 </button>
               )}
             </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {Object.keys(localData).length > 0 ? (
-              <ExtractionTable schema={localSchema} data={localData} onChange={handleDataChange} />
+
+            {editingSchema || localSchema.length === 0 ? (
+              <div className="space-y-3">
+                <SchemaEditor schema={localSchema} onChange={setLocalSchema} />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSaveSchema(localSchema)}
+                    disabled={localSchema.length === 0}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-accent/15 border border-accent/30 text-accent disabled:opacity-40 transition-colors hover:bg-accent/20"
+                  >
+                    Guardar schema
+                  </button>
+                  {editingSchema && (
+                    <button type="button" onClick={() => setEditingSchema(false)} className="text-xs text-dim hover:text-ink transition-colors">
+                      Cancelar
+                    </button>
+                  )}
+                </div>
+              </div>
             ) : (
-              !llmReady && (
-                <p className="text-xs text-info/80">El LLM no está cargado — cárgalo en la pestaña Modelos.</p>
-              )
-            )}
-            <button
-              type="button"
-              onClick={handleExtract}
-              disabled={extracting || !llmReady}
-              className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-dim hover:text-ink hover:bg-white/5 disabled:opacity-40 transition-colors"
-            >
-              {extracting ? 'Extrayendo…' : Object.keys(localData).length > 0 ? 'Re-extraer' : 'Extraer con IA'}
-            </button>
-            {extractionError && (
-              <p className="text-xs text-err/80">{extractionError}</p>
+              <div className="space-y-3">
+                {Object.keys(localData).length > 0 ? (
+                  <ExtractionTable schema={localSchema} data={localData} onChange={handleDataChange} />
+                ) : (
+                  !llmReady && (
+                    <p className="text-xs text-info/80">El LLM no está cargado — cárgalo en la pestaña Modelos.</p>
+                  )
+                )}
+                <button
+                  type="button"
+                  onClick={handleExtract}
+                  disabled={extracting || !llmReady}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-dim hover:text-ink hover:bg-white/5 disabled:opacity-40 transition-colors"
+                >
+                  {extracting ? 'Extrayendo…' : Object.keys(localData).length > 0 ? 'Re-extraer' : 'Extraer con IA'}
+                </button>
+                {extractionError && (
+                  <p className="text-xs text-err/80">{extractionError}</p>
+                )}
+              </div>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Content */}
       {showOriginal ? (
