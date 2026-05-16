@@ -248,6 +248,12 @@ html.a11y-motion *::after {
   .animate-fade-in { animation: fade-in 0.2s ease-out both; }
   .animate-slide-up { animation: slide-up 0.28s cubic-bezier(0.32,0.72,0,1) both; }
   .tab-panel-enter { animation: fade-in 0.18s ease-out both; }
+  .animate-slide-in-right { animation: slide-in-right 0.25s cubic-bezier(0.32,0.72,0,1) both; }
+
+  @keyframes slide-in-right {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0); }
+  }
 }
 
 /* ── Progress bar ──────────────────────────────────────────────────────────── */
