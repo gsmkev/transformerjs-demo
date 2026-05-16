@@ -10,6 +10,7 @@ export interface LlmChatMsg {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _engine: any | null = null
 let _loadedModelId: string | null = null
+let _isReady = false
 
 export async function checkWebGpu(): Promise<boolean> {
   try {
@@ -23,7 +24,7 @@ export async function checkWebGpu(): Promise<boolean> {
 }
 
 export function isLlmLoaded(modelId: string): boolean {
-  return _loadedModelId === modelId && _engine !== null
+  return _isReady && _loadedModelId === modelId
 }
 
 export async function loadLlmModel(
@@ -32,17 +33,25 @@ export async function loadLlmModel(
 ): Promise<void> {
   if (isLlmLoaded(modelId)) return
 
-  // Unload previous model
   _engine = null
   _loadedModelId = null
+  _isReady = false
 
-  const { CreateMLCEngine } = await import('@mlc-ai/web-llm')
-  _engine = await CreateMLCEngine(modelId, {
-    initProgressCallback: ({ text, progress }: { text: string; progress: number }) => {
-      onProgress(text, Math.round(progress * 100))
-    },
-  })
-  _loadedModelId = modelId
+  try {
+    const { CreateMLCEngine } = await import('@mlc-ai/web-llm')
+    _engine = await CreateMLCEngine(modelId, {
+      initProgressCallback: ({ text, progress }: { text: string; progress: number }) => {
+        onProgress(text, Math.round(progress * 100))
+      },
+    })
+    _loadedModelId = modelId
+    _isReady = true
+  } catch (e) {
+    _engine = null
+    _loadedModelId = null
+    _isReady = false
+    throw e
+  }
 }
 
 export async function* streamGenerate(
@@ -55,8 +64,8 @@ export async function* streamGenerate(
   const stream = await _engine.chat.completions.create({
     messages: [{ role: 'system', content: systemPrompt }, ...history],
     stream: true,
-    temperature: 0,          // deterministic — eliminates creative deviation
-    repetition_penalty: 1.1, // prevents looping / word-list generation
+    temperature: 0,
+    repetition_penalty: 1.1,
     max_tokens: maxTokens,
   })
 
