@@ -3,7 +3,8 @@
 import { useState } from 'react'
 
 interface Props {
-  onOpenScanner: () => void
+  onOpenScanner?: () => void
+  onInstall?: () => void
 }
 
 const features = [
@@ -48,7 +49,7 @@ const techDetails = [
   },
 ]
 
-export default function LandingView({ onOpenScanner }: Props) {
+export default function LandingView({ onOpenScanner, onInstall }: Props) {
   const [nerdsOpen, setNerdsOpen] = useState(false)
 
   return (
@@ -81,10 +82,10 @@ export default function LandingView({ onOpenScanner }: Props) {
       {/* CTA */}
       <button
         type="button"
-        onClick={onOpenScanner}
+        onClick={onInstall ?? onOpenScanner}
         className="w-full py-3.5 rounded-xl bg-accent text-white font-semibold text-sm hover:bg-accent-dark active:scale-[0.98] transition-all shadow-md"
       >
-        Escanear mi primer documento
+        {onInstall ? 'Instalar Archivo' : 'Escanear mi primer documento'}
       </button>
 
       {/* Para nerds */}

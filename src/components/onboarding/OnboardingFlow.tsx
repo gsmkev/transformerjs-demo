@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { ModelStatus } from '@/hooks/useRag'
+import LandingView from '@/components/home/LandingView'
 
 export interface OnboardingPrefs {
   language: 'es' | 'en' | 'both'
@@ -123,28 +124,11 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
 
   const stepContent = {
     install: (
-      <div className="flex flex-col items-center text-center gap-6 animate-fade-in">
-        <div className="w-20 h-20 rounded-3xl bg-accent flex items-center justify-center shadow-lg">
-          <ArchivoLogo size={40} />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-ink mb-2">Primero, instalá la app</h1>
-          <p className="text-sm text-dim leading-relaxed max-w-xs mx-auto">
-            Archivo funciona mejor instalada. La tenés siempre a mano y funciona sin internet.
-          </p>
-        </div>
+      <div className="animate-fade-in">
+        <LandingView onInstall={browser === 'chrome' && installPrompt ? handleInstallClick : undefined} />
 
-        <div className="w-full max-w-xs space-y-4">
-          {browser === 'chrome' && installPrompt && (
-            <button
-              type="button"
-              onClick={handleInstallClick}
-              className="w-full py-4 rounded-xl bg-accent text-white font-semibold text-sm hover:bg-accent-dark active:scale-[0.98] transition-all shadow-md"
-            >
-              Instalar Archivo
-            </button>
-          )}
-
+        {/* Browser-specific install instructions for non-Chrome or when prompt not available */}
+        <div className="px-4 pb-8 max-w-lg mx-auto space-y-4">
           {browser === 'chrome' && !installPrompt && (
             <div className="card text-left p-4 text-sm text-dim leading-relaxed">
               <p className="font-medium text-ink mb-1">En Chrome:</p>
@@ -285,7 +269,7 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
   }
 
   return (
-    <div className="fixed inset-0 z-[90] bg-base flex flex-col items-center justify-center px-6 py-12">
+    <div className={`fixed inset-0 z-[90] bg-base flex flex-col ${step === 'install' ? 'overflow-y-auto' : 'items-center justify-center px-6 py-12'}`}>
       {/* Logo small top */}
       {step !== 'install' && (
         <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
@@ -296,7 +280,7 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
         </div>
       )}
 
-      <div className="w-full max-w-sm">
+      <div className={step === 'install' ? 'w-full' : 'w-full max-w-sm'}>
         {stepContent[step]}
       </div>
     </div>
