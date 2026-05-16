@@ -7,5 +7,6 @@ public/sw.js.map
 # Tooling artifacts
 .agents/
 .claude/
+.superpowers/
 skills-lock.json
 tsconfig.tsbuildinfo
