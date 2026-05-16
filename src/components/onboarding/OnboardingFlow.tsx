@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { ModelStatus } from '@/hooks/useRag'
 import LandingView from '@/components/home/LandingView'
 
@@ -69,11 +69,16 @@ function ProgressBar({ value, max, label, done }: { value: number; max: number; 
 }
 
 export default function OnboardingFlow({ onComplete, onStartDownloads, embedStatus, embedProgress, llmStatus, llmProgress }: Props) {
-  const isInstalled = detectInstalled()
-  const [step, setStep] = useState<Step>(isInstalled ? 'language' : 'install')
+  // Always start at 'install' for SSR safety; jump to 'language' on mount if already installed
+  const [step, setStep] = useState<Step>('install')
   const [prefs, setPrefs] = useState<Partial<OnboardingPrefs>>({})
   const [installPrompt, setInstallPrompt] = useState<any>(null)
   const browser = detectBrowser()
+
+  // After hydration: skip install step if app is already running in standalone mode
+  useEffect(() => {
+    if (detectInstalled()) setStep('language')
+  }, [])
 
   // Capture Chrome install prompt
   useEffect(() => {
@@ -82,9 +87,9 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
     return () => window.removeEventListener('beforeinstallprompt', handler as EventListener)
   }, [])
 
-  // Detect when PWA gets installed
+  // Detect when PWA gets installed during this session (appinstalled or display-mode change)
   useEffect(() => {
-    if (isInstalled || step !== 'install') return
+    if (step !== 'install') return
     const mq = window.matchMedia('(display-mode: standalone)')
     const onMqChange = (e: MediaQueryListEvent) => { if (e.matches) setStep('language') }
     const onInstalled = () => setStep('language')
@@ -94,7 +99,7 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
       mq.removeEventListener('change', onMqChange)
       window.removeEventListener('appinstalled', onInstalled)
     }
-  }, [isInstalled, step])
+  }, [step])
 
   const handleInstallClick = useCallback(async () => {
     if (installPrompt) {
@@ -116,7 +121,8 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
     onStartDownloads(fullPrefs)
   }
 
-  const canFinish = embedStatus === 'ready' || embedStatus === 'error'
+  const canFinish = (embedStatus === 'ready' || embedStatus === 'error') &&
+                   (llmStatus === 'ready' || llmStatus === 'error')
 
   const handleFinish = () => {
     onComplete(prefs as OnboardingPrefs)
