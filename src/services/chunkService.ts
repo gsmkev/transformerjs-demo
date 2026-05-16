@@ -41,10 +41,15 @@ export async function indexDocument(
   const texts = chunkText(rawText)
   const chunks: DocumentChunk[] = []
 
-  for (let i = 0; i < texts.length; i++) {
-    const embedding = await embed(texts[i])
-    chunks.push({ id: `${docId}_c${i}`, docId, chunkIndex: i, text: texts[i], embedding })
-    onProgress?.(i + 1, texts.length)
+  const BATCH = 4
+  for (let i = 0; i < texts.length; i += BATCH) {
+    const slice = texts.slice(i, i + BATCH)
+    const embeddings = await Promise.all(slice.map((t) => embed(t)))
+    embeddings.forEach((embedding, j) => {
+      const idx = i + j
+      chunks.push({ id: `${docId}_c${idx}`, docId, chunkIndex: idx, text: slice[j], embedding })
+      onProgress?.(idx + 1, texts.length)
+    })
   }
 
   await saveChunks(chunks)
