@@ -23,6 +23,7 @@ export default function RagView({ documents, chunks, rag, chatHistory, onEmbedDo
   const [input, setInput] = useState('')
   const [indexing, setIndexing] = useState(false)
   const [historySidebarOpen, setHistorySidebarOpen] = useState(false)
+  const [showModelConfig, setShowModelConfig] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const embeddedCount = documents.filter((d) => d.embedding !== null).length
@@ -78,25 +79,57 @@ export default function RagView({ documents, chunks, rag, chatHistory, onEmbedDo
             </svg>
             Historial
           </button>
+          <button
+            type="button"
+            onClick={() => setShowModelConfig((o) => !o)}
+            aria-label="Configuración de modelos"
+            aria-expanded={showModelConfig}
+            className="p-2 rounded-lg text-dim hover:text-ink hover:bg-surface transition-colors"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Desktop gear button row */}
+        <div className="hidden lg:flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowModelConfig((o) => !o)}
+            aria-label="Configuración de modelos"
+            aria-expanded={showModelConfig}
+            className="p-2 rounded-lg text-dim hover:text-ink hover:bg-surface transition-colors"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
         </div>
 
         {/* LLM status: banner when not ready, chip when ready */}
-        {rag.llmStatus !== 'ready' ? (
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-info/8 border border-info/20 flex-wrap">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-info flex-shrink-0" aria-hidden="true">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            <p className="text-xs text-info flex-1 min-w-0">
-              Para generar respuestas, carga un modelo en la sección <strong className="text-ink font-medium">Modelos</strong>.
-            </p>
-            <Button variant="ghost" onClick={onNavigateToModels} className="text-xs py-1 px-2.5 flex-shrink-0">
-              Ir a Modelos →
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-ok flex-shrink-0" aria-hidden="true" />
-            <span className="text-xs text-dim">{activeLlm?.label ?? 'LLM'} · Listo</span>
+        {showModelConfig && (
+          <div className="border-b border-rim animate-fade-in">
+            {rag.llmStatus !== 'ready' ? (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-info/8 border border-info/20 flex-wrap">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-info flex-shrink-0" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <p className="text-xs text-info flex-1 min-w-0">
+                  Para generar respuestas, carga un modelo en la sección <strong className="text-ink font-medium">Modelos</strong>.
+                </p>
+                <Button variant="ghost" onClick={onNavigateToModels} className="text-xs py-1 px-2.5 flex-shrink-0">
+                  Ir a Modelos →
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-ok flex-shrink-0" aria-hidden="true" />
+                <span className="text-xs text-dim">{activeLlm?.label ?? 'LLM'} · Listo</span>
+              </div>
+            )}
           </div>
         )}
 
