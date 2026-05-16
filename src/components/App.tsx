@@ -35,6 +35,7 @@ import { useA11y } from '@/hooks/useA11y'
 import ProfileDrawer from '@/components/layout/ProfileDrawer'
 import ScannerSheet from '@/components/scanner/ScannerSheet'
 import OnboardingFlow, { type OnboardingPrefs } from '@/components/onboarding/OnboardingFlow'
+import { LLM_MODELS } from '@/config/llmModels'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('home')
@@ -92,12 +93,13 @@ export default function App() {
 
   const handleStartDownloads = useCallback((prefs: OnboardingPrefs) => {
     rag.loadEmbedModel()
-    const llmId = prefs.speed === 'fast'
-      ? 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC'
-      : 'Llama-3.2-1B-Instruct-q4f16_1-MLC'
+    rag.loadReranker()
+    // LLM_MODELS[0] = fast (Qwen 0.5B q4f32_1), LLM_MODELS[1] = precise (Llama 3.2 1B)
+    const llmId = prefs.speed === 'fast' ? LLM_MODELS[0].id : LLM_MODELS[1].id
     rag.setSelectedLlmId(llmId)
     rag.loadLlm()
-  }, [rag])
+    if (prefs.audio) audio.loadModel()
+  }, [rag, audio])
 
   const handleTabChange = useCallback((t: Tab) => {
     setTab(t)
@@ -228,8 +230,12 @@ export default function App() {
         onStartDownloads={handleStartDownloads}
         embedStatus={rag.embedStatus}
         embedProgress={rag.embedProgress}
+        rerankerStatus={rag.rerankerStatus}
+        rerankerProgress={rag.rerankerProgress}
         llmStatus={rag.llmStatus}
         llmProgress={rag.llmProgress}
+        whisperStatus={audio.status as 'idle' | 'loading' | 'ready' | 'error'}
+        whisperProgress={audio.progress}
       />
     )
   }

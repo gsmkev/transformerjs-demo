@@ -9,9 +9,9 @@ export interface LlmModelConfig {
 
 export const LLM_MODELS: LlmModelConfig[] = [
   {
-    id: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
+    id: 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC',
     label: 'Qwen 2.5 0.5B — Ultra Fast',
-    size: '~370 MB',
+    size: '~400 MB',
     desc: 'Smallest model, fastest responses. Good for simple document Q&A.',
     contextWindow: 32768,
   },

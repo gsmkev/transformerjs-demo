@@ -7,23 +7,29 @@ import LandingView from '@/components/home/LandingView'
 export interface OnboardingPrefs {
   language: 'es' | 'en' | 'both'
   speed: 'fast' | 'precise'
+  audio: boolean
 }
 
-// install  → user sees the landing + install CTA (browser context)
-// installed → browser tab after Chrome accepted: "open from home screen"
-// language  → first config step (standalone context)
-// speed     → second config step
-// download  → model download progress
-// biometric → optional PIN/fingerprint setup
-type Step = 'install' | 'installed' | 'language' | 'speed' | 'download' | 'biometric'
+// install   → landing + install CTA (browser)
+// installed → "open from home screen" confirmation (browser, after Chrome accept)
+// language  → step 1/3
+// speed     → step 2/3
+// audio     → step 3/3
+// download  → all model downloads (embed + reranker + llm + optional whisper)
+// biometric → optional WebAuthn setup
+type Step = 'install' | 'installed' | 'language' | 'speed' | 'audio' | 'download' | 'biometric'
 
 interface Props {
   onComplete: (prefs: OnboardingPrefs) => void
   onStartDownloads: (prefs: OnboardingPrefs) => void
   embedStatus: ModelStatus
   embedProgress: number
+  rerankerStatus: ModelStatus
+  rerankerProgress: number
   llmStatus: ModelStatus
   llmProgress: number
+  whisperStatus: ModelStatus
+  whisperProgress: number
 }
 
 function detectInstalled(): boolean {
@@ -53,7 +59,7 @@ const ArchivoLogo = ({ size = 32 }: { size?: number }) => (
   </svg>
 )
 
-function ProgressBar({ value, max, label, done }: { value: number; max: number; label: string; done: boolean }) {
+function ProgressBar({ label, value, max, done }: { label: string; value: number; max: number; done: boolean }) {
   const pct = Math.round((value / max) * 100)
   return (
     <div className="w-full">
@@ -74,20 +80,25 @@ function ProgressBar({ value, max, label, done }: { value: number; max: number; 
   )
 }
 
-export default function OnboardingFlow({ onComplete, onStartDownloads, embedStatus, embedProgress, llmStatus, llmProgress }: Props) {
-  // Always start at 'install' for SSR safety; mount effect corrects if already standalone
+export default function OnboardingFlow({
+  onComplete, onStartDownloads,
+  embedStatus, embedProgress,
+  rerankerStatus, rerankerProgress,
+  llmStatus, llmProgress,
+  whisperStatus, whisperProgress,
+}: Props) {
   const [step, setStep] = useState<Step>('install')
   const [prefs, setPrefs] = useState<Partial<OnboardingPrefs>>({})
   const [installPrompt, setInstallPrompt] = useState<any>(null)
   const [biometricAvailable, setBiometricAvailable] = useState(false)
   const browser = detectBrowser()
 
-  // After hydration: if already running as installed PWA, skip install step
+  // After hydration: if already in standalone, skip straight to language
   useEffect(() => {
     if (detectInstalled()) setStep('language')
   }, [])
 
-  // Check if device supports biometric / platform authenticator (FaceID, fingerprint, PIN)
+  // Check device biometric / platform authenticator support
   useEffect(() => {
     if (typeof PublicKeyCredential === 'undefined') return
     PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
@@ -95,20 +106,18 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
       .catch(() => {})
   }, [])
 
-  // Capture Chrome's native install prompt before it would auto-show
+  // Capture Chrome's native install prompt
   useEffect(() => {
     const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e) }
     window.addEventListener('beforeinstallprompt', handler as EventListener)
     return () => window.removeEventListener('beforeinstallprompt', handler as EventListener)
   }, [])
 
-  // Listen for installation events while on the install step
+  // Listen for install events while on the install step
   useEffect(() => {
     if (step !== 'install') return
     const mq = window.matchMedia('(display-mode: standalone)')
-    // If display-mode switches to standalone in this same session, continue onboarding
     const onMqChange = (e: MediaQueryListEvent) => { if (e.matches) setStep('language') }
-    // appinstalled fires in the browser tab — tell the user to open from home screen
     const onInstalled = () => setStep('installed')
     mq.addEventListener('change', onMqChange)
     window.addEventListener('appinstalled', onInstalled)
@@ -118,15 +127,11 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
     }
   }, [step])
 
-  // Chrome native install prompt
   const handleInstallClick = useCallback(async () => {
     if (!installPrompt) return
     await (installPrompt as any).prompt()
     const { outcome } = await (installPrompt as any).userChoice
-    if (outcome === 'accepted') {
-      // We're still in the browser tab. Tell the user to open from home screen.
-      setStep('installed')
-    }
+    if (outcome === 'accepted') setStep('installed')
   }, [installPrompt])
 
   const handleLanguage = (lang: OnboardingPrefs['language']) => {
@@ -135,14 +140,27 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
   }
 
   const handleSpeed = (speed: OnboardingPrefs['speed']) => {
-    const fullPrefs: OnboardingPrefs = { language: prefs.language!, speed }
+    setPrefs((p) => ({ ...p, speed }))
+    setStep('audio')
+  }
+
+  const handleAudio = (wantsAudio: boolean) => {
+    const fullPrefs: OnboardingPrefs = {
+      language: prefs.language!,
+      speed: prefs.speed!,
+      audio: wantsAudio,
+    }
     setPrefs(fullPrefs)
     setStep('download')
     onStartDownloads(fullPrefs)
   }
 
-  const canFinish = (embedStatus === 'ready' || embedStatus === 'error') &&
-                   (llmStatus === 'ready' || llmStatus === 'error')
+  const audioRequired = prefs.audio === true
+  const canFinish =
+    (embedStatus    === 'ready' || embedStatus    === 'error') &&
+    (rerankerStatus === 'ready' || rerankerStatus === 'error') &&
+    (llmStatus      === 'ready' || llmStatus      === 'error') &&
+    (!audioRequired  || whisperStatus === 'ready' || whisperStatus === 'error')
 
   const handleFinish = () => {
     if (biometricAvailable) {
@@ -158,7 +176,6 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
       const userId = new Uint8Array(16)
       crypto.getRandomValues(challenge)
       crypto.getRandomValues(userId)
-
       const credential = await navigator.credentials.create({
         publicKey: {
           rp: { name: 'Archivo', id: window.location.hostname },
@@ -181,7 +198,7 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
         localStorage.setItem('archivo_biometric_id', (credential as PublicKeyCredential).id)
       }
     } catch {
-      // User cancelled or device doesn't support it — proceed without biometrics
+      // cancelled or unsupported — proceed without biometrics
     }
     onComplete(prefs as OnboardingPrefs)
   }, [prefs, onComplete])
@@ -195,8 +212,6 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
       />
     ),
 
-    // Shown in the browser tab after the Chrome install dialog is accepted.
-    // The actual onboarding continues inside the installed PWA.
     installed: (
       <div className="flex flex-col items-center text-center gap-8 animate-fade-in">
         <div className="w-20 h-20 rounded-3xl bg-ok/15 flex items-center justify-center">
@@ -222,15 +237,15 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
     language: (
       <div className="flex flex-col items-center text-center gap-8 animate-fade-in">
         <div>
-          <p className="text-sm font-medium text-accent mb-3">Paso 1 de 2</p>
+          <p className="text-sm font-medium text-accent mb-3">Paso 1 de 3</p>
           <h1 className="text-2xl font-bold text-ink mb-3">¿En qué idioma están tus documentos?</h1>
           <p className="text-sm text-dim">Así los leemos mejor.</p>
         </div>
         <div className="w-full max-w-xs space-y-3">
           {([
-            { value: 'es', label: 'Español', emoji: '🇪🇸' },
-            { value: 'en', label: 'Inglés',  emoji: '🇺🇸' },
-            { value: 'both', label: 'Los dos', emoji: '🌐' },
+            { value: 'es',   label: 'Español',  emoji: '🇪🇸' },
+            { value: 'en',   label: 'Inglés',   emoji: '🇺🇸' },
+            { value: 'both', label: 'Los dos',  emoji: '🌐' },
           ] as const).map((opt) => (
             <button
               key={opt.value}
@@ -249,7 +264,7 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
     speed: (
       <div className="flex flex-col items-center text-center gap-8 animate-fade-in">
         <div>
-          <p className="text-sm font-medium text-accent mb-3">Paso 2 de 2</p>
+          <p className="text-sm font-medium text-accent mb-3">Paso 2 de 3</p>
           <h1 className="text-2xl font-bold text-ink mb-3">¿Qué preferís para la búsqueda?</h1>
           <p className="text-sm text-dim leading-relaxed">Podés cambiarlo después desde tu perfil.</p>
         </div>
@@ -262,7 +277,7 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
             <span className="text-2xl leading-none mt-0.5" aria-hidden="true">⚡</span>
             <div>
               <p className="text-base font-semibold text-ink">Más rápido</p>
-              <p className="text-xs text-dim mt-0.5">Respuestas al instante</p>
+              <p className="text-xs text-dim mt-0.5">Qwen 2.5 0.5B · ~400 MB</p>
             </div>
           </button>
           <button
@@ -273,7 +288,43 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
             <span className="text-2xl leading-none mt-0.5" aria-hidden="true">🎯</span>
             <div>
               <p className="text-base font-semibold text-ink">Más preciso</p>
-              <p className="text-xs text-dim mt-0.5">Vale esperar un poco</p>
+              <p className="text-xs text-dim mt-0.5">Llama 3.2 1B · ~720 MB</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    ),
+
+    audio: (
+      <div className="flex flex-col items-center text-center gap-8 animate-fade-in">
+        <div>
+          <p className="text-sm font-medium text-accent mb-3">Paso 3 de 3</p>
+          <h1 className="text-2xl font-bold text-ink mb-3">¿Querés transcripción por voz?</h1>
+          <p className="text-sm text-dim leading-relaxed max-w-xs mx-auto">
+            Dictá notas o consultás usando el micrófono. Whisper corre 100% en tu dispositivo.
+          </p>
+        </div>
+        <div className="w-full max-w-xs space-y-3">
+          <button
+            type="button"
+            onClick={() => handleAudio(true)}
+            className="w-full flex items-start gap-4 p-5 rounded-xl border border-rim bg-surface hover:bg-surface2 hover:border-accent/40 active:scale-[0.98] transition-all text-left"
+          >
+            <span className="text-2xl leading-none mt-0.5" aria-hidden="true">🎤</span>
+            <div>
+              <p className="text-base font-semibold text-ink">Sí, activar voz</p>
+              <p className="text-xs text-dim mt-0.5">Whisper Tiny · ~40 MB extra</p>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAudio(false)}
+            className="w-full flex items-start gap-4 p-5 rounded-xl border border-rim bg-surface hover:bg-surface2 hover:border-accent/40 active:scale-[0.98] transition-all text-left"
+          >
+            <span className="text-2xl leading-none mt-0.5" aria-hidden="true">⌨️</span>
+            <div>
+              <p className="text-base font-semibold text-ink">Solo texto por ahora</p>
+              <p className="text-xs text-dim mt-0.5">Podés activarlo después desde ajustes</p>
             </div>
           </button>
         </div>
@@ -285,12 +336,16 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
         <div>
           <h1 className="text-2xl font-bold text-ink mb-3">Preparando tu Archivo…</h1>
           <p className="text-sm text-dim leading-relaxed max-w-xs mx-auto">
-            Esto solo pasa una vez. Descargamos todo lo necesario para que la búsqueda funcione en tu dispositivo.
+            Esto solo pasa una vez. Todo se descarga directamente en tu dispositivo.
           </p>
         </div>
-        <div className="w-full max-w-xs space-y-5">
-          <ProgressBar label="Motor de búsqueda" value={embedProgress} max={100} done={embedStatus === 'ready'} />
-          <ProgressBar label="Modelo de lenguaje"  value={llmProgress}   max={100} done={llmStatus === 'ready'} />
+        <div className="w-full max-w-xs space-y-4">
+          <ProgressBar label="Motor de búsqueda"   value={embedProgress}    max={100} done={embedStatus    === 'ready'} />
+          <ProgressBar label="Reranker"             value={rerankerProgress} max={100} done={rerankerStatus === 'ready'} />
+          <ProgressBar label="Modelo de lenguaje"   value={llmProgress}      max={100} done={llmStatus      === 'ready'} />
+          {audioRequired && (
+            <ProgressBar label="Audio (Whisper)"    value={whisperProgress}  max={100} done={whisperStatus  === 'ready'} />
+          )}
         </div>
         {!canFinish && (
           <p className="text-xs text-dim/60 animate-pulse">Casi listo…</p>
