@@ -45,7 +45,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const pinLock = usePinLock()
-  const { theme, choice: themeChoice, setThemeChoice, toggle } = useTheme()
+  const { theme, choice: themeChoice, setThemeChoice } = useTheme()
   const a11y = useA11y()
   const [profileOpen, setProfileOpen] = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
