@@ -9,7 +9,13 @@ export interface OnboardingPrefs {
   speed: 'fast' | 'precise'
 }
 
-type Step = 'install' | 'language' | 'speed' | 'download'
+// install  → user sees the landing + install CTA (browser context)
+// installed → browser tab after Chrome accepted: "open from home screen"
+// language  → first config step (standalone context)
+// speed     → second config step
+// download  → model download progress
+// biometric → optional PIN/fingerprint setup
+type Step = 'install' | 'installed' | 'language' | 'speed' | 'download' | 'biometric'
 
 interface Props {
   onComplete: (prefs: OnboardingPrefs) => void
@@ -31,8 +37,8 @@ function detectInstalled(): boolean {
 function detectBrowser(): 'chrome' | 'safari' | 'firefox' | 'other' {
   if (typeof navigator === 'undefined') return 'other'
   const ua = navigator.userAgent
-  if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) return 'safari'
-  if (/Chrome/i.test(ua) || /CriOS/i.test(ua)) return 'chrome'
+  if (/CriOS/i.test(ua) || /Chrome/i.test(ua) || /Edg\//i.test(ua)) return 'chrome'
+  if (/Safari/i.test(ua)) return 'safari'
   if (/Firefox/i.test(ua) || /FxiOS/i.test(ua)) return 'firefox'
   return 'other'
 }
@@ -69,30 +75,41 @@ function ProgressBar({ value, max, label, done }: { value: number; max: number; 
 }
 
 export default function OnboardingFlow({ onComplete, onStartDownloads, embedStatus, embedProgress, llmStatus, llmProgress }: Props) {
-  // Always start at 'install' for SSR safety; jump to 'language' on mount if already installed
+  // Always start at 'install' for SSR safety; mount effect corrects if already standalone
   const [step, setStep] = useState<Step>('install')
   const [prefs, setPrefs] = useState<Partial<OnboardingPrefs>>({})
   const [installPrompt, setInstallPrompt] = useState<any>(null)
+  const [biometricAvailable, setBiometricAvailable] = useState(false)
   const browser = detectBrowser()
 
-  // After hydration: skip install step if app is already running in standalone mode
+  // After hydration: if already running as installed PWA, skip install step
   useEffect(() => {
     if (detectInstalled()) setStep('language')
   }, [])
 
-  // Capture Chrome install prompt
+  // Check if device supports biometric / platform authenticator (FaceID, fingerprint, PIN)
+  useEffect(() => {
+    if (typeof PublicKeyCredential === 'undefined') return
+    PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+      .then(setBiometricAvailable)
+      .catch(() => {})
+  }, [])
+
+  // Capture Chrome's native install prompt before it would auto-show
   useEffect(() => {
     const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e) }
     window.addEventListener('beforeinstallprompt', handler as EventListener)
     return () => window.removeEventListener('beforeinstallprompt', handler as EventListener)
   }, [])
 
-  // Detect when PWA gets installed during this session (appinstalled or display-mode change)
+  // Listen for installation events while on the install step
   useEffect(() => {
     if (step !== 'install') return
     const mq = window.matchMedia('(display-mode: standalone)')
+    // If display-mode switches to standalone in this same session, continue onboarding
     const onMqChange = (e: MediaQueryListEvent) => { if (e.matches) setStep('language') }
-    const onInstalled = () => setStep('language')
+    // appinstalled fires in the browser tab — tell the user to open from home screen
+    const onInstalled = () => setStep('installed')
     mq.addEventListener('change', onMqChange)
     window.addEventListener('appinstalled', onInstalled)
     return () => {
@@ -101,11 +118,14 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
     }
   }, [step])
 
+  // Chrome native install prompt
   const handleInstallClick = useCallback(async () => {
-    if (installPrompt) {
-      await (installPrompt as any).prompt()
-      const result = await (installPrompt as any).userChoice
-      if (result.outcome === 'accepted') setStep('language')
+    if (!installPrompt) return
+    await (installPrompt as any).prompt()
+    const { outcome } = await (installPrompt as any).userChoice
+    if (outcome === 'accepted') {
+      // We're still in the browser tab. Tell the user to open from home screen.
+      setStep('installed')
     }
   }, [installPrompt])
 
@@ -125,15 +145,78 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
                    (llmStatus === 'ready' || llmStatus === 'error')
 
   const handleFinish = () => {
-    onComplete(prefs as OnboardingPrefs)
+    if (biometricAvailable) {
+      setStep('biometric')
+    } else {
+      onComplete(prefs as OnboardingPrefs)
+    }
   }
 
-  const stepContent = {
+  const handleBiometricSetup = useCallback(async () => {
+    try {
+      const challenge = new Uint8Array(32)
+      const userId = new Uint8Array(16)
+      crypto.getRandomValues(challenge)
+      crypto.getRandomValues(userId)
+
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          rp: { name: 'Archivo', id: window.location.hostname },
+          user: { id: userId, name: 'usuario', displayName: 'Archivo' },
+          challenge,
+          pubKeyCredParams: [
+            { alg: -7, type: 'public-key' },
+            { alg: -257, type: 'public-key' },
+          ],
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform',
+            userVerification: 'required',
+            residentKey: 'preferred',
+          },
+          timeout: 60000,
+          attestation: 'none',
+        },
+      })
+      if (credential) {
+        localStorage.setItem('archivo_biometric_id', (credential as PublicKeyCredential).id)
+      }
+    } catch {
+      // User cancelled or device doesn't support it — proceed without biometrics
+    }
+    onComplete(prefs as OnboardingPrefs)
+  }, [prefs, onComplete])
+
+  const stepContent: Record<Step, React.ReactNode> = {
+
     install: (
       <LandingView
         installContext
         onInstall={browser === 'chrome' && installPrompt ? handleInstallClick : undefined}
       />
+    ),
+
+    // Shown in the browser tab after the Chrome install dialog is accepted.
+    // The actual onboarding continues inside the installed PWA.
+    installed: (
+      <div className="flex flex-col items-center text-center gap-8 animate-fade-in">
+        <div className="w-20 h-20 rounded-3xl bg-ok/15 flex items-center justify-center">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            className="text-ok" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-ink mb-3">¡Archivo instalado!</h1>
+          <p className="text-sm text-dim leading-relaxed max-w-xs mx-auto">
+            Abrí Archivo desde tu pantalla de inicio para continuar la configuración.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-dim/60">
+          <span className="w-2 h-2 rounded-full bg-ok" aria-hidden="true" />
+          Instalación completada
+        </div>
+      </div>
     ),
 
     language: (
@@ -205,43 +288,56 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
             Esto solo pasa una vez. Descargamos todo lo necesario para que la búsqueda funcione en tu dispositivo.
           </p>
         </div>
-
         <div className="w-full max-w-xs space-y-5">
-          <ProgressBar
-            label="Motor de búsqueda"
-            value={embedProgress}
-            max={100}
-            done={embedStatus === 'ready'}
-          />
-          <ProgressBar
-            label="Modelo de lenguaje"
-            value={llmProgress}
-            max={100}
-            done={llmStatus === 'ready'}
-          />
+          <ProgressBar label="Motor de búsqueda" value={embedProgress} max={100} done={embedStatus === 'ready'} />
+          <ProgressBar label="Modelo de lenguaje"  value={llmProgress}   max={100} done={llmStatus === 'ready'} />
         </div>
-
         {!canFinish && (
-          <p className="text-xs text-dim/60 animate-pulse">
-            Casi listo…
-          </p>
+          <p className="text-xs text-dim/60 animate-pulse">Casi listo…</p>
         )}
-
         <button
           type="button"
           onClick={handleFinish}
           disabled={!canFinish}
           className="w-full max-w-xs py-4 rounded-xl bg-accent text-white font-semibold text-sm hover:bg-accent-dark active:scale-[0.98] transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
         >
-          {canFinish ? 'Empezar →' : 'Descargando…'}
+          {canFinish ? 'Continuar →' : 'Descargando…'}
         </button>
+      </div>
+    ),
+
+    biometric: (
+      <div className="flex flex-col items-center text-center gap-8 animate-fade-in">
+        <div>
+          <div className="text-5xl mb-2" aria-hidden="true">🔐</div>
+          <h1 className="text-2xl font-bold text-ink mb-3">Protegé tu Archivo</h1>
+          <p className="text-sm text-dim leading-relaxed max-w-xs mx-auto">
+            Usá tu huella digital, Face ID o el PIN del dispositivo para acceder.
+            Solo vos podés ver tus documentos.
+          </p>
+        </div>
+        <div className="w-full max-w-xs space-y-3">
+          <button
+            type="button"
+            onClick={handleBiometricSetup}
+            className="w-full py-4 rounded-xl bg-accent text-white font-semibold text-sm hover:bg-accent-dark active:scale-[0.98] transition-all shadow-md"
+          >
+            Activar acceso seguro
+          </button>
+          <button
+            type="button"
+            onClick={() => onComplete(prefs as OnboardingPrefs)}
+            className="w-full py-3 rounded-xl text-dim text-sm hover:text-ink transition-colors"
+          >
+            Ahora no
+          </button>
+        </div>
       </div>
     ),
   }
 
   return (
     <div className={`fixed inset-0 z-[90] bg-base flex flex-col ${step === 'install' ? 'overflow-y-auto' : 'items-center justify-center px-6 py-12'}`}>
-      {/* Logo small top */}
       {step !== 'install' && (
         <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
           <div className="w-7 h-7 rounded-xl bg-accent flex items-center justify-center flex-shrink-0">
@@ -250,7 +346,6 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
           <span className="text-sm font-bold text-ink">Archivo</span>
         </div>
       )}
-
       <div className={step === 'install' ? 'w-full' : 'w-full max-w-sm'}>
         {stepContent[step]}
       </div>
