@@ -34,7 +34,7 @@ export function useBatchOcr({ selectedEngineId, runOcr, create }: BatchOcrDeps) 
     const imageFiles = files.filter((f) => f.type.startsWith('image/'))
     if (imageFiles.length === 0) return
 
-    Promise.all(imageFiles.map((f) => new Promise<BatchItem>((resolve) => {
+    Promise.all(imageFiles.map((f) => new Promise<BatchItem>((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = (e) => {
         resolve({
@@ -44,14 +44,15 @@ export function useBatchOcr({ selectedEngineId, runOcr, create }: BatchOcrDeps) 
           status: 'pending',
         })
       }
+      reader.onerror = () => reject(new Error(`No se pudo leer el archivo: ${f.name}`))
       reader.readAsDataURL(f)
     }))).then((items) => {
       setQueue((prev) => [...prev, ...items])
-    })
+    }).catch(() => { /* file read errors are non-fatal — skip unreadable files */ })
   }, [])
 
   const removeItem = useCallback((id: string) => {
-    setQueue((prev) => prev.filter((item) => item.id !== id || item.status !== 'pending'))
+    setQueue((prev) => prev.filter((item) => item.id !== id))
   }, [])
 
   const clearQueue = useCallback(() => {
