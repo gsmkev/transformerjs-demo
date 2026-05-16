@@ -30,7 +30,9 @@ export function useCollections() {
   }, [collections.length])
 
   const rename = useCallback(async (id: string, name: string): Promise<void> => {
-    await updateCollection(id, { name: name.trim() })
+    try {
+      await updateCollection(id, { name: name.trim() })
+    } catch { /* best-effort: record may have been deleted */ }
     setCollections((prev) => prev.map((c) => c.id === id ? { ...c, name: name.trim() } : c))
   }, [])
 

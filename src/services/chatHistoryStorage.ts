@@ -16,7 +16,7 @@ export async function getAllChatHistories(): Promise<ChatHistory[]> {
 export async function updateChatHistory(id: string, patch: Partial<ChatHistory>): Promise<void> {
   const db = await getDb()
   const existing = await db.get('chat_histories', id)
-  if (!existing) return
+  if (!existing) throw new Error(`Chat history not found: ${id}`)
   await db.put('chat_histories', { ...existing, ...patch, updatedAt: Date.now() })
 }
 

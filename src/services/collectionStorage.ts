@@ -15,7 +15,7 @@ export async function getAllCollections(): Promise<Collection[]> {
 export async function updateCollection(id: string, patch: Partial<Collection>): Promise<void> {
   const db = await getDb()
   const existing = await db.get('collections', id)
-  if (!existing) return
+  if (!existing) throw new Error(`Collection not found: ${id}`)
   await db.put('collections', { ...existing, ...patch })
 }
 

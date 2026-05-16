@@ -48,7 +48,9 @@ export function useChatHistory({ limit, generateTitle }: UseChatHistoryOptions) 
       setActiveId(id)
       activeIdRef.current = id
     } else {
-      await updateChatHistory(activeIdRef.current, { messages, updatedAt: now })
+      try {
+        await updateChatHistory(activeIdRef.current, { messages, updatedAt: now })
+      } catch { /* best-effort: record may have been deleted */ }
     }
 
     await pruneChatHistories(limit)
@@ -72,7 +74,9 @@ export function useChatHistory({ limit, generateTitle }: UseChatHistoryOptions) 
   }, [refresh])
 
   const renameHistory = useCallback(async (id: string, title: string): Promise<void> => {
-    await updateChatHistory(id, { title })
+    try {
+      await updateChatHistory(id, { title })
+    } catch { /* best-effort: record may have been deleted */ }
     await refresh()
   }, [refresh])
 
