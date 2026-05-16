@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 
 export interface A11yPrefs {
   textSize: 'normal' | 'large'
@@ -16,8 +16,11 @@ function readPrefs(): A11yPrefs {
   if (typeof window === 'undefined') return DEFAULTS
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return DEFAULTS
-    return { ...DEFAULTS, ...JSON.parse(raw) }
+    const stored = raw ? { ...DEFAULTS, ...JSON.parse(raw) } : null
+    if (stored) return stored
+    // No stored value — check OS preference for motion
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    return { ...DEFAULTS, motion: prefersReduced ? 'reduced' : 'normal' }
   } catch { return DEFAULTS }
 }
 
@@ -30,6 +33,11 @@ function applyPrefs(prefs: A11yPrefs) {
 
 export function useA11y() {
   const [prefs, setPrefs] = useState<A11yPrefs>(readPrefs)
+
+  useEffect(() => {
+    applyPrefs(prefs)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])  // intentional: apply once on mount to sync DOM with persisted state
 
   const update = useCallback((partial: Partial<A11yPrefs>) => {
     setPrefs((prev) => {

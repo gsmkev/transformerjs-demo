@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 interface Props {
   open: boolean
@@ -25,11 +25,22 @@ const AudioIcon = () => (
 )
 
 export default function ScannerSheet({ open, onClose, onSelectImage, onSelectAudio }: Props) {
+  const firstButtonRef = useRef<HTMLButtonElement>(null)
+
   useEffect(() => {
     if (!open) return
+    // Lock scroll
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    // Move focus
+    firstButtonRef.current?.focus()
+    // Escape key
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
   }, [open, onClose])
 
   if (!open) return null
@@ -47,7 +58,12 @@ export default function ScannerSheet({ open, onClose, onSelectImage, onSelectAud
       />
 
       {/* Sheet */}
-      <div className="relative bg-base border-t border-rim rounded-t-2xl pb-[env(safe-area-inset-bottom,16px)] animate-slide-up">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Añadir documento"
+        className="relative bg-base border-t border-rim rounded-t-2xl pb-[env(safe-area-inset-bottom,16px)] animate-slide-up"
+      >
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full bg-rim" aria-hidden="true" />
@@ -58,6 +74,8 @@ export default function ScannerSheet({ open, onClose, onSelectImage, onSelectAud
 
           <div className="space-y-2">
             <button
+              ref={firstButtonRef}
+              type="button"
               onClick={handleImage}
               className="w-full flex items-center gap-4 p-4 rounded-xl bg-surface border border-rim hover:bg-surface2 active:scale-[0.98] transition-all text-left"
             >
@@ -69,6 +87,7 @@ export default function ScannerSheet({ open, onClose, onSelectImage, onSelectAud
             </button>
 
             <button
+              type="button"
               onClick={handleAudio}
               className="w-full flex items-center gap-4 p-4 rounded-xl bg-surface border border-rim hover:bg-surface2 active:scale-[0.98] transition-all text-left"
             >
@@ -81,6 +100,7 @@ export default function ScannerSheet({ open, onClose, onSelectImage, onSelectAud
           </div>
 
           <button
+            type="button"
             onClick={onClose}
             className="w-full mt-3 py-3 text-sm text-dim hover:text-ink transition-colors"
           >

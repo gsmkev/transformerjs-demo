@@ -61,8 +61,9 @@ export default function TabBar({ active, onChange, onFab, variant = 'top', fabPu
         <div className="flex items-center justify-center">
           <button
             onClick={onFab}
+            disabled={!onFab}
             aria-label="Añadir documento"
-            className={`w-14 h-14 rounded-full bg-accent text-white flex items-center justify-center shadow-md active:scale-95 transition-transform duration-150 ${fabPulse ? 'fab-pulse' : ''}`}
+            className={`w-14 h-14 rounded-full bg-accent text-white flex items-center justify-center shadow-md active:scale-95 transition-transform duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${fabPulse ? 'fab-pulse' : ''}`}
           >
             <PlusIcon />
           </button>

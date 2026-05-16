@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 
 export type ThemeChoice = 'dark' | 'light' | 'system'
 export type Theme = 'dark' | 'light'   // resolved
@@ -31,6 +31,11 @@ function applyTheme(resolved: Theme) {
 export function useTheme() {
   const [choice, setChoice] = useState<ThemeChoice>(readChoice)
   const theme: Theme = resolveTheme(choice)
+
+  useEffect(() => {
+    applyTheme(theme)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])  // intentional: apply once on mount to sync DOM with persisted state
 
   const setThemeChoice = useCallback((next: ThemeChoice) => {
     setChoice(next)
