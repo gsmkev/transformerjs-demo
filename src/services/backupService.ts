@@ -100,16 +100,9 @@ export async function importBackup(file: File): Promise<ImportResult> {
     try {
       const json = await zipFile.async('string')
       const history = JSON.parse(json)
-      // Dynamic import with fallback — chatHistoryStorage may not exist yet
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const dynamicImport = new Function('specifier', 'return import(specifier)') as (s: string) => Promise<any>
-      const { saveChatHistory } = await dynamicImport('./chatHistoryStorage').catch(() => ({ saveChatHistory: null }))
-      if (saveChatHistory) {
-        await saveChatHistory(history)
-        result.chatsImported++
-      } else {
-        result.errors.push(`${path}: chatHistoryStorage not available`)
-      }
+      const { saveChatHistory } = await import('./chatHistoryStorage')
+      await saveChatHistory(history)
+      result.chatsImported++
     } catch (err) {
       result.errors.push(`${path}: ${String(err)}`)
     }
