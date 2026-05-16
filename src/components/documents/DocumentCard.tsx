@@ -37,7 +37,7 @@ export default function DocumentCard({ doc, onOpen, onDelete, selectionMode, isS
 
   return (
     <div
-      className="card card-interactive flex gap-4 group relative"
+      className="flex gap-4 group relative rounded-xl border border-rim bg-surface active:scale-[0.99] transition-transform cursor-pointer p-4"
       onClick={selectionMode ? onToggleSelect : onOpen}
       role="button"
       tabIndex={0}
@@ -57,7 +57,7 @@ export default function DocumentCard({ doc, onOpen, onDelete, selectionMode, isS
       )}
       {doc.imageDataUrl && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={doc.imageDataUrl} alt="" aria-hidden="true" className="w-14 h-14 object-cover rounded-xl flex-shrink-0 bg-surface border border-white/7" />
+        <img src={doc.imageDataUrl} alt="" aria-hidden="true" className="w-14 h-14 object-cover rounded-xl flex-shrink-0 bg-surface border border-rim" />
       )}
       <div className="flex-1 min-w-0 pr-6">
         <p className="font-semibold text-ink truncate leading-snug">{doc.title}</p>
@@ -102,7 +102,7 @@ export default function DocumentCard({ doc, onOpen, onDelete, selectionMode, isS
       <button
         onClick={(e) => { e.stopPropagation(); onDelete() }}
         aria-label={`Delete document: ${doc.title}`}
-        className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 focus:opacity-100 w-10 h-10 rounded-xl bg-white/5 hover:bg-err/15 hover:border-err/30 border border-transparent text-dim hover:text-err flex items-center justify-center transition-all"
+        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 focus:opacity-100 w-8 h-8 rounded-lg bg-surface2 hover:bg-err/10 hover:border-err/20 border border-transparent text-dim hover:text-err flex items-center justify-center transition-all"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
