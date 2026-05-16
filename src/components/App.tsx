@@ -34,6 +34,7 @@ import { useAudioTranscription } from '@/hooks/useAudioTranscription'
 import { useA11y } from '@/hooks/useA11y'
 import ProfileDrawer from '@/components/layout/ProfileDrawer'
 import ScannerSheet from '@/components/scanner/ScannerSheet'
+import OnboardingFlow, { type OnboardingPrefs } from '@/components/onboarding/OnboardingFlow'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('home')
@@ -77,6 +78,26 @@ export default function App() {
 
   const audio = useAudioTranscription()
   const [audioSaving, setAudioSaving] = useState(false)
+
+  const [onboardingDone, setOnboardingDone] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    return localStorage.getItem('archivo_onboarding_done') === '1'
+  })
+
+  const handleOnboardingComplete = useCallback((prefs: OnboardingPrefs) => {
+    localStorage.setItem('archivo_onboarding_done', '1')
+    localStorage.setItem('archivo_lang', prefs.language)
+    setOnboardingDone(true)
+  }, [])
+
+  const handleStartDownloads = useCallback((prefs: OnboardingPrefs) => {
+    rag.loadEmbedModel()
+    const llmId = prefs.speed === 'fast'
+      ? 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC'
+      : 'Llama-3.2-1B-Instruct-q4f16_1-MLC'
+    rag.setSelectedLlmId(llmId)
+    rag.loadLlm()
+  }, [rag])
 
   const handleTabChange = useCallback((t: Tab) => {
     setTab(t)
@@ -200,6 +221,19 @@ export default function App() {
     )
   }
 
+  if (!onboardingDone) {
+    return (
+      <OnboardingFlow
+        onComplete={handleOnboardingComplete}
+        onStartDownloads={handleStartDownloads}
+        embedStatus={rag.embedStatus}
+        embedProgress={rag.embedProgress}
+        llmStatus={rag.llmStatus}
+        llmProgress={rag.llmProgress}
+      />
+    )
+  }
+
   return (
     <div className="min-h-screen text-ink">
       <header className="sticky top-0 z-40 border-b border-rim bg-base/95 backdrop-blur-sm">
@@ -258,8 +292,6 @@ export default function App() {
                 collections={collections}
                 onOpenScanner={() => handleTabChange('ocr')}
                 onOpenDoc={(id) => { setSelectedDocId(id); handleTabChange('documents') }}
-                onOpenSecurity={() => setSettingsOpen(true)}
-                onOpenModels={() => handleTabChange('engines')}
                 onNavigateRag={() => handleTabChange('rag')}
               />
           </div>

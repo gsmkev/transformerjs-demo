@@ -2,7 +2,6 @@
 
 import type { ScannedDocument, Collection } from '@/types/document'
 import LandingView from '@/components/home/LandingView'
-import OnboardingBanner from '@/components/home/OnboardingBanner'
 
 const CATEGORY_LABELS: Record<string, string> = {
   factura: 'Factura',
@@ -20,8 +19,6 @@ interface Props {
   collections: Collection[]
   onOpenScanner: () => void
   onOpenDoc: (id: string) => void
-  onOpenSecurity: () => void
-  onOpenModels: () => void
   onNavigateRag: () => void
 }
 
@@ -43,19 +40,9 @@ function RecentCard({ doc, onOpen }: { doc: ScannedDocument; onOpen: () => void 
   )
 }
 
-export default function DashboardView({ documents, collections, onOpenScanner, onOpenDoc, onOpenSecurity, onOpenModels, onNavigateRag }: Props) {
+export default function DashboardView({ documents, collections, onOpenScanner, onOpenDoc, onNavigateRag }: Props) {
   if (documents.length === 0) {
-    return (
-      <>
-        <OnboardingBanner
-          onOpenSecurity={onOpenSecurity}
-          onOpenModels={onOpenModels}
-          onOpenScanner={onOpenScanner}
-          hasDocuments={false}
-        />
-        <LandingView onOpenScanner={onOpenScanner} />
-      </>
-    )
+    return <LandingView onOpenScanner={onOpenScanner} />
   }
 
   const recent = [...documents].sort((a, b) => b.createdAt - a.createdAt).slice(0, 8)
@@ -67,13 +54,6 @@ export default function DashboardView({ documents, collections, onOpenScanner, o
 
   return (
     <div className="pb-32 animate-fade-in">
-      <OnboardingBanner
-        onOpenSecurity={onOpenSecurity}
-        onOpenModels={onOpenModels}
-        onOpenScanner={onOpenScanner}
-        hasDocuments
-      />
-
       {/* Recientes */}
       <div className="mt-5 px-4">
         <p className="text-xs font-semibold uppercase tracking-widest text-dim mb-3">Recientes</p>
