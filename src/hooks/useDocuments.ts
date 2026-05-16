@@ -8,6 +8,7 @@ import {
   updateDocument,
   deleteDocument,
   getAllChunks,
+  deleteChunksByDocId,
 } from '@/services/documentStorage'
 
 type CreatePayload = Omit<ScannedDocument, 'id' | 'createdAt' | 'updatedAt' | 'embedding'>
@@ -53,7 +54,9 @@ export function useDocuments() {
 
   const remove = useCallback(async (id: string): Promise<void> => {
     await deleteDocument(id)
+    await deleteChunksByDocId(id)
     setDocuments((prev) => prev.filter((d) => d.id !== id))
+    setChunks((prev) => prev.filter((c) => c.docId !== id))
   }, [])
 
   const addExportEntry = useCallback(
