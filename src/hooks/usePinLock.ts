@@ -26,6 +26,7 @@ export function usePinLock() {
   const [isLocked, setIsLocked] = useState(false)
   const [hasPinSet, setHasPinSet] = useState(false)
   const [hasWebAuthn, setHasWebAuthn] = useState(false)
+  const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
     try {
@@ -36,6 +37,8 @@ export function usePinLock() {
       if (pinHash) setIsLocked(true)
     } catch {
       // localStorage unavailable (private browsing)
+    } finally {
+      setInitialized(true)
     }
   }, [])
 
@@ -145,5 +148,5 @@ export function usePinLock() {
     }
   }, [])
 
-  return { isLocked, hasPinSet, hasWebAuthn, unlock, unlockWithBiometric, setPin, removePin, registerBiometric, resetAll }
+  return { isLocked, hasPinSet, hasWebAuthn, initialized, unlock, unlockWithBiometric, setPin, removePin, registerBiometric, resetAll }
 }
