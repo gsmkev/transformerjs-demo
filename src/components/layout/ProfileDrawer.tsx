@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import type { ThemeChoice } from '@/hooks/useTheme'
 import type { A11yPrefs } from '@/hooks/useA11y'
+import type { ModelStatus } from '@/hooks/useRag'
 
 interface Props {
   open: boolean
@@ -13,9 +14,9 @@ interface Props {
   onA11yChange: (p: Partial<A11yPrefs>) => void
   onOpenModels: () => void
   onOpenSecurity: () => void
-  embedStatus: string
-  llmStatus: string
-  rerankerStatus: string
+  embedStatus: ModelStatus
+  llmStatus: ModelStatus
+  rerankerStatus: ModelStatus
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -39,7 +40,9 @@ function SegmentedControl<T extends string>({
       {options.map((opt) => (
         <button
           key={opt.value}
+          type="button"
           onClick={() => onChange(opt.value)}
+          aria-pressed={value === opt.value}
           className={`px-3 py-1 text-xs font-medium transition-colors ${
             value === opt.value
               ? 'bg-accent text-white'
@@ -53,14 +56,22 @@ function SegmentedControl<T extends string>({
   )
 }
 
-const statusDot = (s: string) => s === 'ready' ? '🟢' : s === 'loading' ? '🟡' : '⚪'
+const statusDot = (s: ModelStatus) => {
+  if (s === 'ready')   return '🟢'
+  if (s === 'loading') return '🟡'
+  if (s === 'error')   return '🔴'
+  return '⚪'
+}
 
 export default function ProfileDrawer({
   open, onClose, themeChoice, onThemeChange, a11y, onA11yChange,
   onOpenModels, onOpenSecurity, embedStatus, llmStatus, rerankerStatus,
 }: Props) {
+  const closeRef = useRef<HTMLButtonElement>(null)
+
   useEffect(() => {
     if (!open) return
+    closeRef.current?.focus()
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -71,10 +82,17 @@ export default function ProfileDrawer({
   return (
     <div className="fixed inset-0 z-[70] flex justify-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
-      <div className="relative w-full max-w-xs bg-base border-l border-rim h-full overflow-y-auto animate-slide-in-right">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Perfil"
+        className="relative w-full max-w-xs bg-base border-l border-rim h-full overflow-y-auto animate-slide-in-right"
+      >
         <div className="flex items-center justify-between p-4 border-b border-rim sticky top-0 bg-base z-10">
           <p className="font-semibold text-ink">Perfil</p>
           <button
+            ref={closeRef}
+            type="button"
             onClick={onClose}
             aria-label="Cerrar panel"
             className="w-8 h-8 rounded-lg flex items-center justify-center text-dim hover:text-ink hover:bg-surface transition-colors"
@@ -135,6 +153,7 @@ export default function ProfileDrawer({
 
           <SectionLabel>Seguridad</SectionLabel>
           <button
+            type="button"
             onClick={() => { onClose(); onOpenSecurity() }}
             className="w-full flex items-center justify-between py-2.5 border-b border-rim text-sm text-ink hover:text-accent transition-colors"
           >
@@ -146,6 +165,7 @@ export default function ProfileDrawer({
 
           <SectionLabel>Modelos de IA</SectionLabel>
           <button
+            type="button"
             onClick={() => { onClose(); onOpenModels() }}
             className="w-full flex items-center justify-between py-2.5 border-b border-rim text-sm text-ink hover:text-accent transition-colors"
           >
