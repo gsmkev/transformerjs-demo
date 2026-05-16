@@ -26,19 +26,19 @@ export default function RagView({ documents, chunks, rag, chatHistory, onEmbedDo
   const [showModelConfig, setShowModelConfig] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const embeddedCount = documents.filter((d) => d.embedding !== null).length
+  const embeddedCount = new Set(chunks.map((c) => c.docId)).size
   const activeLlm = LLM_MODELS.find((m) => m.id === rag.selectedLlmId)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [rag.messages, rag.streaming])
 
-  const handleSubmit = (e?: FormEvent) => {
+  const handleSubmit = async (e?: FormEvent) => {
     e?.preventDefault()
     const q = input.trim()
     if (!q || rag.streaming) return
     setInput('')
-    rag.chat(q, documents, chunks)
+    await rag.chat(q, documents, chunks)
   }
 
   const handleEmbedAll = async () => {
