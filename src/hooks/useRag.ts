@@ -101,8 +101,9 @@ export function useRag(config?: { onAfterChat?: (messages: ChatMessage[]) => voi
   const [queryError, setQueryError]   = useState<string | null>(null)
   const [lastSources, setLastSources] = useState<ScannedDocument[]>([])
 
-  const messagesRef = useRef<ChatMessage[]>([])
-  const abortRef    = useRef(false)
+  const messagesRef   = useRef<ChatMessage[]>([])
+  const abortRef      = useRef(false)
+  const isRunningRef  = useRef(false)
 
   const updateMessages = useCallback((updater: (prev: ChatMessage[]) => ChatMessage[]) => {
     setMessages((prev) => {
@@ -270,82 +271,85 @@ export function useRag(config?: { onAfterChat?: (messages: ChatMessage[]) => voi
     documents: ScannedDocument[],
     chunks: DocumentChunk[],
   ) => {
-    if (streaming) return
-    setQueryError(null)
-
-    const selectedModel = LLM_MODELS.find((m) => m.id === selectedLlmId) ?? LLM_MODELS[1]
-    const preset = getPreset(responseLength, selectedModel.contextWindow)
-
-    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: query }
-    updateMessages((prev) => [...prev, userMsg])
-
-    let sources: ScannedDocument[] = []
-    let excerpts = new Map<string, string>()
-    let reranked = false
+    if (streaming || isRunningRef.current) return
+    isRunningRef.current = true
     try {
-      const result = await retrieve(query, documents, chunks, preset.topK)
-      sources  = result.sources
-      excerpts = result.excerpts
-      reranked = result.reranked
-      setLastSources(sources)
-    } catch (e) {
-      setQueryError(e instanceof Error ? e.message : String(e))
-      updateMessages((prev) => prev.slice(0, -1))
-      return
-    }
+      setQueryError(null)
 
-    const assistantId = crypto.randomUUID()
+      const selectedModel = LLM_MODELS.find((m) => m.id === selectedLlmId) ?? LLM_MODELS[1]
+      const preset = getPreset(responseLength, selectedModel.contextWindow)
 
-    // Without LLM: show relevant excerpts directly as citations
-    if (llmStatus !== 'ready') {
-      const content = sources.length > 0
-        ? sources
-            .map((d, i) => {
-              const excerpt = excerpts.get(d.id) ?? d.rawText.slice(0, 300)
-              return `**[${i + 1}] ${d.title}**\n> ${excerpt.slice(0, 300)}`
-            })
-            .join('\n\n')
-        : 'No se encontraron documentos relevantes para tu consulta.'
-      const noLlmMsg: ChatMessage = { id: assistantId, role: 'assistant', content, sources }
-      const finalMsgsNoLlm = [...messagesRef.current, noLlmMsg]
-      setMessages(finalMsgsNoLlm)
-      messagesRef.current = finalMsgsNoLlm
-      config?.onAfterChat?.(finalMsgsNoLlm)
-      return
-    }
+      const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: query }
+      updateMessages((prev) => [...prev, userMsg])
 
-    // Stream LLM response
-    const assistantMsg: ChatMessage = { id: assistantId, role: 'assistant', content: '', sources }
-    updateMessages((prev) => [...prev, assistantMsg])
-    setStreaming(true)
-    abortRef.current = false
-
-    let accumulated = ''
-    try {
-      const systemPrompt = buildSystemPrompt(sources, excerpts, reranked, preset)
-      const history = messagesRef.current
-        .filter((m) => m.id !== assistantId)
-        .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
-
-      for await (const chunk of streamGenerate(systemPrompt, history, preset.maxTokens)) {
-        if (abortRef.current) break
-        accumulated += chunk
-        setMessages((prev) =>
-          prev.map((m) => m.id === assistantId ? { ...m, content: accumulated } : m),
-        )
+      let sources: ScannedDocument[] = []
+      let excerpts = new Map<string, string>()
+      let reranked = false
+      try {
+        const result = await retrieve(query, documents, chunks, preset.topK)
+        sources  = result.sources
+        excerpts = result.excerpts
+        reranked = result.reranked
+        setLastSources(sources)
+      } catch (e) {
+        setQueryError(e instanceof Error ? e.message : String(e))
+        updateMessages((prev) => prev.slice(0, -1))
+        return
       }
-      messagesRef.current = messagesRef.current.map((m) =>
-        m.id === assistantId ? { ...m, content: accumulated } : m,
-      )
-      config?.onAfterChat?.(messagesRef.current)
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      updateMessages((prev) =>
-        prev.map((m) => m.id === assistantId ? { ...m, content: `⚠️ ${msg}` } : m),
-      )
-      setQueryError(msg)
+
+      const assistantId = crypto.randomUUID()
+
+      if (llmStatus !== 'ready') {
+        const content = sources.length > 0
+          ? sources
+              .map((d, i) => {
+                const excerpt = excerpts.get(d.id) ?? d.rawText.slice(0, 300)
+                return `**[${i + 1}] ${d.title}**\n> ${excerpt.slice(0, 300)}`
+              })
+              .join('\n\n')
+          : 'No se encontraron documentos relevantes para tu consulta.'
+        const noLlmMsg: ChatMessage = { id: assistantId, role: 'assistant', content, sources }
+        const finalMsgsNoLlm = [...messagesRef.current, noLlmMsg]
+        setMessages(finalMsgsNoLlm)
+        messagesRef.current = finalMsgsNoLlm
+        config?.onAfterChat?.(finalMsgsNoLlm)
+        return
+      }
+
+      const assistantMsg: ChatMessage = { id: assistantId, role: 'assistant', content: '', sources }
+      updateMessages((prev) => [...prev, assistantMsg])
+      setStreaming(true)
+      abortRef.current = false
+
+      let accumulated = ''
+      try {
+        const systemPrompt = buildSystemPrompt(sources, excerpts, reranked, preset)
+        const history = messagesRef.current
+          .filter((m) => m.id !== assistantId)
+          .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+
+        for await (const chunk of streamGenerate(systemPrompt, history, preset.maxTokens)) {
+          if (abortRef.current) break
+          accumulated += chunk
+          setMessages((prev) =>
+            prev.map((m) => m.id === assistantId ? { ...m, content: accumulated } : m),
+          )
+        }
+        messagesRef.current = messagesRef.current.map((m) =>
+          m.id === assistantId ? { ...m, content: accumulated } : m,
+        )
+        config?.onAfterChat?.(messagesRef.current)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        updateMessages((prev) =>
+          prev.map((m) => m.id === assistantId ? { ...m, content: `⚠️ ${msg}` } : m),
+        )
+        setQueryError(msg)
+      } finally {
+        setStreaming(false)
+      }
     } finally {
-      setStreaming(false)
+      isRunningRef.current = false
     }
   }, [streaming, retrieve, llmStatus, updateMessages, responseLength, selectedLlmId])
 
