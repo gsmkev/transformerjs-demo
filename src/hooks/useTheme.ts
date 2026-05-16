@@ -2,30 +2,45 @@
 
 import { useState, useCallback } from 'react'
 
-export type Theme = 'dark' | 'light'
+export type ThemeChoice = 'dark' | 'light' | 'system'
+export type Theme = 'dark' | 'light'   // resolved
 
-function getInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'dark'
-  try {
-    const stored = localStorage.getItem('papeleo_theme')
-    if (stored === 'light' || stored === 'dark') return stored
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  } catch {
-    return 'dark'
+const STORAGE_KEY = 'archivo_theme'
+
+function resolveTheme(choice: ThemeChoice): Theme {
+  if (choice === 'system') {
+    return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark' : 'light'
   }
+  return choice
+}
+
+function readChoice(): ThemeChoice {
+  if (typeof window === 'undefined') return 'system'
+  try {
+    const s = localStorage.getItem(STORAGE_KEY)
+    if (s === 'light' || s === 'dark' || s === 'system') return s
+    return 'system'
+  } catch { return 'system' }
+}
+
+function applyTheme(resolved: Theme) {
+  document.documentElement.classList.toggle('light', resolved === 'light')
 }
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme)
+  const [choice, setChoice] = useState<ThemeChoice>(readChoice)
+  const theme: Theme = resolveTheme(choice)
 
-  const toggle = useCallback(() => {
-    setTheme((prev) => {
-      const next: Theme = prev === 'dark' ? 'light' : 'dark'
-      localStorage.setItem('papeleo_theme', next)
-      document.documentElement.classList.toggle('light', next === 'light')
-      return next
-    })
+  const setThemeChoice = useCallback((next: ThemeChoice) => {
+    setChoice(next)
+    try { localStorage.setItem(STORAGE_KEY, next) } catch {}
+    applyTheme(resolveTheme(next))
   }, [])
 
-  return { theme, toggle }
+  const toggle = useCallback(() => {
+    setThemeChoice(theme === 'dark' ? 'light' : 'dark')
+  }, [theme, setThemeChoice])
+
+  return { theme, choice, setThemeChoice, toggle }
 }
