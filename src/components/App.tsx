@@ -31,6 +31,9 @@ import SettingsModal from '@/components/ui/SettingsModal'
 import { usePinLock } from '@/hooks/usePinLock'
 import LockScreen from '@/components/ui/LockScreen'
 import { useAudioTranscription } from '@/hooks/useAudioTranscription'
+import { useA11y } from '@/hooks/useA11y'
+import ProfileDrawer from '@/components/layout/ProfileDrawer'
+import ScannerSheet from '@/components/scanner/ScannerSheet'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('home')
@@ -42,7 +45,10 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const pinLock = usePinLock()
-  const { theme, toggle } = useTheme()
+  const { theme, choice: themeChoice, setThemeChoice, toggle } = useTheme()
+  const a11y = useA11y()
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [scannerOpen, setScannerOpen] = useState(false)
   const { engineStates, workersRef, initEngine, retryEngine } = useEngineManager()
   const { selectedId, setSelectedId } = useSelectedEngine()
   const imageLoader = useImageLoader()
@@ -168,6 +174,18 @@ export default function App() {
     handleTabChange('documents')
   }, [handleTabChange])
 
+  const handleFab = useCallback(() => setScannerOpen(true), [])
+
+  const handleScannerImage = useCallback(() => {
+    setScannerOpen(false)
+    handleTabChange('ocr')
+  }, [handleTabChange])
+
+  const handleScannerAudio = useCallback(() => {
+    setScannerOpen(false)
+    handleTabChange('ocr')
+  }, [handleTabChange])
+
   const selectedDoc = selectedDocId ? documents.find((d) => d.id === selectedDocId) : null
   const allTags = Array.from(new Set(documents.flatMap((d) => d.tags ?? []))).sort()
 
@@ -184,75 +202,52 @@ export default function App() {
 
   return (
     <div className="min-h-screen text-ink">
-      {/* Sticky glass header */}
-      <header className="sticky top-0 z-40 border-b border-[var(--glass-border)] bg-base/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-rim bg-base/95 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent to-accent-light flex items-center justify-center shadow-accent-glow-sm flex-shrink-0" aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center flex-shrink-0" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 64 64">
                 <rect x="14" y="8" width="26" height="34" rx="2" fill="white" opacity="0.95"/>
-                <polygon points="40,8 40,17 49,17" fill="rgba(15,118,110,0.8)"/>
-                <line x1="18" y1="21" x2="35" y2="21" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round"/>
-                <line x1="18" y1="27" x2="35" y2="27" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round"/>
-                <line x1="18" y1="33" x2="29" y2="33" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round"/>
+                <polygon points="40,8 40,17 49,17" fill="rgba(255,255,255,0.5)"/>
+                <line x1="18" y1="21" x2="35" y2="21" stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
+                <line x1="18" y1="27" x2="35" y2="27" stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
+                <line x1="18" y1="33" x2="29" y2="33" stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
               </svg>
             </div>
-            <div>
-              <h1 className="text-base font-bold gradient-text leading-none">Papeleo</h1>
-              <p className="text-[10px] text-dim/70 mt-0.5 leading-none">Tu vida, sin papeles</p>
-            </div>
+            <h1 className="text-base font-bold text-ink">Archivo</h1>
           </div>
-          <button
-            onClick={() => setSearchOpen(true)}
-            aria-label="Buscar documentos (Cmd+K)"
-            className="p-2 rounded-lg hover:bg-white/5 transition-colors text-dim hover:text-ink flex-shrink-0"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </button>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            aria-label="Ajustes"
-            className="p-2 rounded-lg hover:bg-white/5 transition-colors text-dim hover:text-ink flex-shrink-0"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-          </button>
-          <button
-            onClick={toggle}
-            aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-            className="p-2 rounded-lg hover:bg-white/5 transition-colors text-dim hover:text-ink flex-shrink-0"
-          >
-            {theme === 'dark' ? (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Buscar documentos"
+              className="p-2 rounded-lg hover:bg-surface transition-colors text-dim hover:text-ink"
+            >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="5"/>
-                <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
-            ) : (
+            </button>
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              aria-label="Perfil y ajustes"
+              className="p-2 rounded-lg hover:bg-surface transition-colors text-dim hover:text-ink"
+            >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
               </svg>
-            )}
-          </button>
-          <InstallButton />
+            </button>
+          </div>
+        </div>
+        {/* Desktop top TabBar (hidden on mobile) */}
+        <div className="hidden sm:block">
+          <TabBar active={tab} onChange={handleTabChange} />
         </div>
       </header>
 
-      {/* Sticky top tab bar — desktop only */}
-      <div className="hidden sm:block sticky top-[57px] z-30 bg-base/80 backdrop-blur-xl border-b border-[var(--glass-border)]">
-        <div className="max-w-4xl mx-auto">
-          <TabBar active={tab} onChange={handleTabChange} />
-        </div>
-      </div>
-
       {/* Fixed bottom tab bar — mobile only */}
-      <TabBar variant="bottom" active={tab} onChange={handleTabChange} />
+      <TabBar variant="bottom" active={tab} onChange={handleTabChange} onFab={handleFab} fabPulse={documents.length === 0} />
 
       {/* Main content */}
       <main className="max-w-4xl mx-auto mb-20 sm:mb-0">
@@ -383,6 +378,27 @@ export default function App() {
           onDismiss={() => setDuplicateWarning([])}
         />
       )}
+
+      <ProfileDrawer
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        themeChoice={themeChoice}
+        onThemeChange={setThemeChoice}
+        a11y={a11y.prefs}
+        onA11yChange={a11y.update}
+        onOpenModels={() => { setProfileOpen(false); handleTabChange('engines') }}
+        onOpenSecurity={() => { setProfileOpen(false); setSettingsOpen(true) }}
+        embedStatus={rag.embedStatus}
+        llmStatus={rag.llmStatus}
+        rerankerStatus={rag.rerankerStatus}
+      />
+
+      <ScannerSheet
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onSelectImage={handleScannerImage}
+        onSelectAudio={handleScannerAudio}
+      />
     </div>
   )
 }
