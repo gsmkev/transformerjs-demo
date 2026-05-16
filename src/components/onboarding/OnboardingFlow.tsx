@@ -124,45 +124,10 @@ export default function OnboardingFlow({ onComplete, onStartDownloads, embedStat
 
   const stepContent = {
     install: (
-      <div className="animate-fade-in">
-        <LandingView onInstall={browser === 'chrome' && installPrompt ? handleInstallClick : undefined} />
-
-        {/* Browser-specific install instructions for non-Chrome or when prompt not available */}
-        <div className="px-4 pb-8 max-w-lg mx-auto space-y-4">
-          {browser === 'chrome' && !installPrompt && (
-            <div className="card text-left p-4 text-sm text-dim leading-relaxed">
-              <p className="font-medium text-ink mb-1">En Chrome:</p>
-              <p>Tocá el icono <span className="font-mono bg-surface2 px-1 rounded">⊕</span> en la barra de direcciones → <em>Instalar</em></p>
-            </div>
-          )}
-
-          {browser === 'safari' && (
-            <div className="card text-left p-4 text-sm text-dim leading-relaxed">
-              <p className="font-medium text-ink mb-1">En Safari:</p>
-              <p>Tocá el botón compartir <span className="font-mono bg-surface2 px-1 rounded">□↑</span> → <em>Agregar a la pantalla de inicio</em></p>
-            </div>
-          )}
-
-          {browser === 'firefox' && (
-            <div className="card text-left p-4 text-sm text-dim leading-relaxed">
-              <p className="font-medium text-ink mb-1">En Firefox:</p>
-              <p>Tocá el menú <span className="font-mono bg-surface2 px-1 rounded">⋮</span> → <em>Instalar</em></p>
-            </div>
-          )}
-
-          {browser === 'other' && (
-            <div className="card text-left p-4 text-sm text-dim leading-relaxed">
-              <p className="font-medium text-ink mb-1">Para instalar:</p>
-              <p>Abrí esta página en Chrome o Safari y seguí las instrucciones de instalación.</p>
-            </div>
-          )}
-
-          <div className="flex items-center justify-center gap-2 text-xs text-dim/60 pt-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent/50 animate-pulse" aria-hidden="true" />
-            Esperando instalación…
-          </div>
-        </div>
-      </div>
+      <LandingView
+        installContext
+        onInstall={browser === 'chrome' && installPrompt ? handleInstallClick : undefined}
+      />
     ),
 
     language: (
