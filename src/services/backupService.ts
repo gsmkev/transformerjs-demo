@@ -96,11 +96,11 @@ export async function importBackup(file: File): Promise<ImportResult> {
   }
 
   const chatFiles = Object.entries(zip.files).filter(([path]) => path.startsWith('chat_histories/') && path.endsWith('.json'))
+  const { saveChatHistory } = await import('./chatHistoryStorage')
   for (const [path, zipFile] of chatFiles) {
     try {
       const json = await zipFile.async('string')
       const history = JSON.parse(json)
-      const { saveChatHistory } = await import('./chatHistoryStorage')
       await saveChatHistory(history)
       result.chatsImported++
     } catch (err) {

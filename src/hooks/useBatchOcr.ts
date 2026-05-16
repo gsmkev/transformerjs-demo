@@ -34,7 +34,7 @@ export function useBatchOcr({ selectedEngineId, runOcr, create }: BatchOcrDeps) 
     const imageFiles = files.filter((f) => f.type.startsWith('image/'))
     if (imageFiles.length === 0) return
 
-    Promise.all(imageFiles.map((f) => new Promise<BatchItem>((resolve, reject) => {
+    Promise.allSettled(imageFiles.map((f) => new Promise<BatchItem>((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = (e) => {
         resolve({
@@ -46,9 +46,12 @@ export function useBatchOcr({ selectedEngineId, runOcr, create }: BatchOcrDeps) 
       }
       reader.onerror = () => reject(new Error(`No se pudo leer el archivo: ${f.name}`))
       reader.readAsDataURL(f)
-    }))).then((items) => {
-      setQueue((prev) => [...prev, ...items])
-    }).catch(() => { /* file read errors are non-fatal — skip unreadable files */ })
+    }))).then((results) => {
+      const items = results
+        .filter((r): r is PromiseFulfilledResult<BatchItem> => r.status === 'fulfilled')
+        .map((r) => r.value)
+      if (items.length > 0) setQueue((prev) => [...prev, ...items])
+    })
   }, [])
 
   const removeItem = useCallback((id: string) => {

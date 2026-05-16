@@ -55,7 +55,3 @@ export async function indexDocument(
   await saveChunks(chunks)
   return chunks.length
 }
-
-export async function removeDocumentChunks(docId: string): Promise<void> {
-  await deleteChunksByDocId(docId)
-}
