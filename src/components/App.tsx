@@ -16,7 +16,7 @@ import type { DuplicateResult } from '@/services/duplicateDetectionService'
 import DuplicateWarning from '@/components/ui/DuplicateWarning'
 import { classifyDocument } from '@/services/categoryService'
 import { summarizeDocument } from '@/services/summaryService'
-import { indexDocument, removeDocumentChunks } from '@/services/chunkService'
+import { indexDocument } from '@/services/chunkService'
 import TabBar from '@/components/tabs/TabBar'
 import ModelsView from '@/components/models/ModelsView'
 import OcrView from '@/components/ocr/OcrView'
@@ -182,10 +182,8 @@ export default function App() {
   }, [documents, handleEmbedDoc])
 
   const handleRemoveDoc = useCallback(async (id: string) => {
-    await removeDocumentChunks(id)
     await remove(id)
-    await refreshChunks()
-  }, [remove, refreshChunks])
+  }, [remove])
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -217,6 +215,8 @@ export default function App() {
 
   const selectedDoc = selectedDocId ? documents.find((d) => d.id === selectedDocId) : null
   const allTags = Array.from(new Set(documents.flatMap((d) => d.tags ?? []))).sort()
+
+  if (!pinLock.initialized) return null
 
   if (pinLock.isLocked) {
     return (
@@ -407,10 +407,7 @@ export default function App() {
         <SettingsModal
           documents={documents}
           onClose={() => setSettingsOpen(false)}
-          onImportComplete={() => {
-            if (typeof refresh === 'function') refresh()
-            else window.location.reload()
-          }}
+          onImportComplete={refresh}
           pinLock={pinLock}
         />
       )}
