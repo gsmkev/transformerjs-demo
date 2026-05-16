@@ -88,8 +88,14 @@ export default function App() {
   const handleOnboardingComplete = useCallback((prefs: OnboardingPrefs) => {
     localStorage.setItem('archivo_onboarding_done', '1')
     localStorage.setItem('archivo_lang', prefs.language)
+    // Auto-load and select the OCR engine matching the chosen language
+    const engineId = prefs.language === 'es' ? 'spa-fast'
+      : prefs.language === 'en'   ? 'eng-fast'
+      : 'eng+spa-fast'
+    initEngine(engineId)
+    setSelectedId(engineId)
     setOnboardingDone(true)
-  }, [])
+  }, [initEngine, setSelectedId])
 
   const handleStartDownloads = useCallback((prefs: OnboardingPrefs) => {
     rag.loadEmbedModel()

@@ -59,20 +59,26 @@ const ArchivoLogo = ({ size = 32 }: { size?: number }) => (
   </svg>
 )
 
-function ProgressBar({ label, value, max, done }: { label: string; value: number; max: number; done: boolean }) {
+function ProgressBar({ label, value, max, done, isError }: {
+  label: string; value: number; max: number; done: boolean; isError?: boolean
+}) {
   const pct = Math.round((value / max) * 100)
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-sm text-dim">{label}</span>
         {done
-          ? <span className="text-xs text-ok font-medium">Listo ✓</span>
+          ? isError
+            ? <span className="text-xs text-warn font-medium">Error ✕</span>
+            : <span className="text-xs text-ok font-medium">Listo ✓</span>
           : <span className="text-xs text-dim font-mono">{pct}%</span>
         }
       </div>
       <div className="h-2 bg-surface2 rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-500 ${done ? 'bg-ok' : 'bg-accent'}`}
+          className={`h-full rounded-full transition-all duration-500 ${
+            done ? (isError ? 'bg-warn' : 'bg-ok') : 'bg-accent'
+          }`}
           style={{ width: done ? '100%' : `${pct}%` }}
         />
       </div>
@@ -340,11 +346,15 @@ export default function OnboardingFlow({
           </p>
         </div>
         <div className="w-full max-w-xs space-y-4">
-          <ProgressBar label="Motor de búsqueda"   value={embedProgress}    max={100} done={embedStatus    === 'ready'} />
-          <ProgressBar label="Reranker"             value={rerankerProgress} max={100} done={rerankerStatus === 'ready'} />
-          <ProgressBar label="Modelo de lenguaje"   value={llmProgress}      max={100} done={llmStatus      === 'ready'} />
+          <ProgressBar label="Motor de búsqueda"  value={embedProgress}    max={100}
+            done={embedStatus    === 'ready' || embedStatus    === 'error'} isError={embedStatus    === 'error'} />
+          <ProgressBar label="Reranker"            value={rerankerProgress} max={100}
+            done={rerankerStatus === 'ready' || rerankerStatus === 'error'} isError={rerankerStatus === 'error'} />
+          <ProgressBar label="Modelo de lenguaje" value={llmProgress}      max={100}
+            done={llmStatus      === 'ready' || llmStatus      === 'error'} isError={llmStatus      === 'error'} />
           {audioRequired && (
-            <ProgressBar label="Audio (Whisper)"    value={whisperProgress}  max={100} done={whisperStatus  === 'ready'} />
+            <ProgressBar label="Audio (Whisper)"  value={whisperProgress}  max={100}
+              done={whisperStatus  === 'ready' || whisperStatus  === 'error'} isError={whisperStatus  === 'error'} />
           )}
         </div>
         {!canFinish && (

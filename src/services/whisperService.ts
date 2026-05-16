@@ -15,7 +15,7 @@ export async function loadWhisper(
       const { pipeline, env } = await import('@huggingface/transformers')
       env.allowLocalModels = false
       const pipe = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        device: 'wasm',  // force WASM — WebGPU triggers TransposeDQWeightsForMatMulNBits error
         progress_callback: (info: any) => {
           if (typeof info?.progress === 'number') onProgress?.(Math.round(info.progress))
         },
