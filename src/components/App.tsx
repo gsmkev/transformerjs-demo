@@ -260,9 +260,12 @@ export default function App() {
           <div key={tab === 'home' ? activeKey : 0} className={tab === 'home' ? 'tab-panel-enter' : ''}>
             <DashboardView
                 documents={documents}
-                onNavigate={handleTabChange}
-                onCameraCapture={handleCameraCapture}
+                collections={collections}
+                onOpenScanner={() => handleTabChange('ocr')}
                 onOpenDoc={(id) => { setSelectedDocId(id); handleTabChange('documents') }}
+                onOpenSecurity={() => setSettingsOpen(true)}
+                onOpenModels={() => handleTabChange('engines')}
+                onNavigateRag={() => handleTabChange('rag')}
               />
           </div>
         </div>
