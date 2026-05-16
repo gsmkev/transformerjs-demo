@@ -1,6 +1,15 @@
-// src/services/extractionService.ts
 import { streamGenerate, isLlmLoaded } from './llmService'
 import type { ExtractionField } from '@/types/document'
+
+function parseJsonFromLlm(response: string): Record<string, unknown> {
+  const stripped = response.replace(/```(?:json)?\s*([\s\S]*?)\s*```/g, '$1').trim()
+  try { return JSON.parse(stripped) as Record<string, unknown> } catch { /* fall through */ }
+  const match = stripped.match(/\{[\s\S]*\}/)
+  if (match) {
+    try { return JSON.parse(match[0]) as Record<string, unknown> } catch { /* fall through */ }
+  }
+  throw new Error('El modelo no devolvió un JSON válido. Inténtalo de nuevo.')
+}
 
 export async function extractStructuredData(
   rawText: string,
@@ -40,17 +49,7 @@ ${exampleJson}`
     fullResponse += chunk
   }
 
-  const jsonMatch = fullResponse.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) {
-    throw new Error('El modelo no devolvió un JSON válido. Inténtalo de nuevo.')
-  }
-
-  let parsed: Record<string, unknown>
-  try {
-    parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>
-  } catch {
-    throw new Error('El modelo devolvió JSON malformado. Inténtalo de nuevo.')
-  }
+  const parsed = parseJsonFromLlm(fullResponse)
 
   const result: Record<string, string> = {}
   for (const field of schema) {
